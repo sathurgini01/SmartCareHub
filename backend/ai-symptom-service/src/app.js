@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const aiSymptomRoutes = require("./routes/aiSymptomRoutes");
 
 const app = express();
 
@@ -13,5 +14,7 @@ app.get("/health", (req, res) => {
     message: "AI Symptom service is running"
   });
 });
+
+app.use("/api/ai-symptom", aiSymptomRoutes);
 
 module.exports = app;
