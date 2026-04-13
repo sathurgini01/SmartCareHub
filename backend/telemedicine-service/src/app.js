@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const telemedicineRoutes = require("./routes/telemedicineRoutes");
 
 const app = express();
 
@@ -13,5 +14,7 @@ app.get("/health", (req, res) => {
     message: "Telemedicine service is running"
   });
 });
+
+app.use("/api/telemedicine", telemedicineRoutes);
 
 module.exports = app;
