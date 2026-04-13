@@ -76,13 +76,7 @@ const joinSession = async (req, res) => {
     const { sessionId } = req.params;
     const { role } = req.body;
 
-    if (!role || !["patient", "doctor"].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid role is required: patient or doctor",
-      });
-    }
-
+    
     const session = await TelemedicineSession.findById(sessionId);
 
     if (!session) {
@@ -92,10 +86,32 @@ const joinSession = async (req, res) => {
       });
     }
 
+     if (!["doctor", "patient"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role. Role must be doctor or patient"
+      });
+    }
+
+
     if (session.status === "ended" || session.status === "cancelled") {
       return res.status(400).json({
         success: false,
         message: `Cannot join a ${session.status} session`,
+      });
+    }
+
+    if (role === "patient" && session.patientJoined) {
+      return res.status(400).json({
+        success: false,
+        message: "Patient already joined this session"
+      });
+    }
+
+    if (role === "doctor" && session.doctorJoined) {
+      return res.status(400).json({
+        success: false,
+        message: "Doctor already joined this session"
       });
     }
 
@@ -127,7 +143,10 @@ const joinSession = async (req, res) => {
       error: error.message,
     });
   }
+
 };
+
+
 
 const endSession = async (req, res) => {
   try {
@@ -142,12 +161,14 @@ const endSession = async (req, res) => {
       });
     }
 
+
     if (session.status === "ended") {
       return res.status(400).json({
         success: false,
-        message: "Session already ended",
+        message: " Session already ended",
       });
     }
+    
 
     session.status = "ended";
     session.actualEndTime = new Date();

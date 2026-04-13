@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 
@@ -13,5 +14,7 @@ app.get("/health", (req, res) => {
     message: "Notification service is running"
   });
 });
+
+app.use("/api/notifications", notificationRoutes);
 
 module.exports = app;
