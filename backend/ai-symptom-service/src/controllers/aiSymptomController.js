@@ -22,7 +22,7 @@ const checkSymptoms = async (req, res) => {
       });
     }
 
-    const analysis = analyzeSymptoms(symptoms);
+    const analysis = await analyzeSymptoms(symptoms, age, gender, duration, additionalNotes);
 
     const savedQuery = await AiSymptomQuery.create({
       patientId,
@@ -35,7 +35,7 @@ const checkSymptoms = async (req, res) => {
       riskLevel: analysis.riskLevel,
       aiResponse: analysis.aiResponse,
       disclaimerShown: true,
-      sourceModel: "rule-based-v1",
+      sourceModel: analysis.sourceModel || "rule-based-v1",
     });
 
     return res.status(201).json({
@@ -111,7 +111,7 @@ const getSymptomQueryById = async (req, res) => {
   }
 };
 
-const getAllAiLogs = async (req, res) => {
+const getAllAiLogs = async (_req, res) => {
   try {
     const logs = await AiSymptomQuery.find().sort({ createdAt: -1 });
 

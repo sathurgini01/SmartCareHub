@@ -76,7 +76,6 @@ const joinSession = async (req, res) => {
     const { sessionId } = req.params;
     const { role } = req.body;
 
-    
     const session = await TelemedicineSession.findById(sessionId);
 
     if (!session) {
@@ -86,13 +85,12 @@ const joinSession = async (req, res) => {
       });
     }
 
-     if (!["doctor", "patient"].includes(role)) {
+    if (!["doctor", "patient"].includes(role)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role. Role must be doctor or patient"
+        message: "Invalid role. Role must be doctor or patient",
       });
     }
-
 
     if (session.status === "ended" || session.status === "cancelled") {
       return res.status(400).json({
@@ -165,10 +163,9 @@ const endSession = async (req, res) => {
     if (session.status === "ended") {
       return res.status(400).json({
         success: false,
-        message: " Session already ended",
+        message: "Session already ended",
       });
     }
-    
 
     session.status = "ended";
     session.actualEndTime = new Date();
@@ -229,7 +226,7 @@ const getMySessions = async (req, res) => {
   }
 };
 
-const getAllSessionLogs = async (req, res) => {
+const getAllSessionLogs = async (_req, res) => {
   try {
     const sessions = await TelemedicineSession.find().sort({ createdAt: -1 });
 
@@ -247,11 +244,49 @@ const getAllSessionLogs = async (req, res) => {
   }
 };
 
+const cancelSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await TelemedicineSession.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Telemedicine session not found",
+      });
+    }
+
+    if (session.status === "ended" || session.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: `Session is already ${session.status}`,
+      });
+    }
+
+    session.status = "cancelled";
+    await session.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Telemedicine session cancelled successfully",
+      data: session,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to cancel telemedicine session",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createSession,
   getSessionByAppointment,
   joinSession,
   endSession,
+  cancelSession,
   getMySessions,
   getAllSessionLogs,
 };

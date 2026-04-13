@@ -1,4 +1,6 @@
 const Notification = require("../models/Notification");
+const { sendEmail } = require("../utils/emailSender");
+const { sendSms } = require("../utils/smsSender");
 
 const sendEmailNotification = async (req, res) => {
   try {
@@ -11,6 +13,20 @@ const sendEmailNotification = async (req, res) => {
       });
     }
 
+    let status = "sent";
+    let provider = process.env.EMAIL_PROVIDER || "gmail";
+
+    try {
+      await sendEmail({
+        to: recipientEmail,
+        subject: subject || "SmartCareHub Notification",
+        text: message,
+      });
+    } catch (sendError) {
+      console.error("Email delivery failed:", sendError.message);
+      status = "failed";
+    }
+
     const notification = await Notification.create({
       userId,
       appointmentId: appointmentId || null,
@@ -19,20 +35,22 @@ const sendEmailNotification = async (req, res) => {
       recipientEmail,
       subject: subject || "SmartCareHub Notification",
       message,
-      status: "sent",
-      provider: "mock",
+      status,
+      provider,
       sentAt: new Date(),
     });
 
     return res.status(201).json({
       success: true,
-      message: "Email notification sent successfully",
+      message: status === "sent"
+        ? "Email notification sent successfully"
+        : "Email notification logged but delivery failed",
       data: notification,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Failed to send email notification",
+      message: "Failed to process email notification",
       error: error.message,
     });
   }
@@ -49,6 +67,16 @@ const sendSmsNotification = async (req, res) => {
       });
     }
 
+    let status = "sent";
+    const provider = "twilio";
+
+    try {
+      await sendSms({ to: recipientPhone, message });
+    } catch (sendError) {
+      console.error("SMS delivery failed:", sendError.message);
+      status = "failed";
+    }
+
     const notification = await Notification.create({
       userId,
       appointmentId: appointmentId || null,
@@ -56,20 +84,22 @@ const sendSmsNotification = async (req, res) => {
       category,
       recipientPhone,
       message,
-      status: "sent",
-      provider: "mock",
+      status,
+      provider,
       sentAt: new Date(),
     });
 
     return res.status(201).json({
       success: true,
-      message: "SMS notification sent successfully",
+      message: status === "sent"
+        ? "SMS notification sent successfully"
+        : "SMS notification logged but delivery failed",
       data: notification,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Failed to send SMS notification",
+      message: "Failed to process SMS notification",
       error: error.message,
     });
   }
@@ -128,7 +158,7 @@ const getNotificationById = async (req, res) => {
   }
 };
 
-const getAllNotificationLogs = async (req, res) => {
+const getAllNotificationLogs = async (_req, res) => {
   try {
     const notifications = await Notification.find().sort({ createdAt: -1 });
 
