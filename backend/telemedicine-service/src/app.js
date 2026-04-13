@@ -7,7 +7,11 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/health", (req, res) => {
-  res.json({ message: "Service running" });
+  res.status(200).json({
+    success: true,
+    service: "telemedicine-service",
+    message: "Telemedicine service is running"
+  });
 });
 
 module.exports = app;
