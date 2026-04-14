@@ -1,23 +1,26 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
+import { useAuth } from '../../context/AuthContext';
 import { getMyNotifications } from '../../api/notificationApi';
 
 function Notifications() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [filter, setFilter]   = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
 
   useEffect(() => {
-    getMyNotifications()
+    // backend requires ?userId=xxx
+    getMyNotifications(user?.id)
       .then((r) => setNotifications(r.data.data || []))
       .catch(() => setError('Failed to load notifications.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const filtered = notifications.filter((n) => {
     if (filter === 'all') return true;
-    return (n.type || n.channel || '').toLowerCase() === filter;
+    return (n.type || '').toLowerCase() === filter;
   });
 
   const timeAgo = (date) => {
@@ -65,7 +68,7 @@ function Notifications() {
               </div>
             ) : (
               filtered.map((n, i) => {
-                const ch = (n.type || n.channel || 'email').toLowerCase();
+                const ch = (n.type || 'email').toLowerCase();
                 const delivered = n.status === 'sent' || n.status === 'delivered';
                 return (
                   <div key={n._id || i} className="notif-item">
@@ -79,11 +82,9 @@ function Notifications() {
                         {timeAgo(n.createdAt)}
                       </p>
                     </div>
-                    <div>
-                      <span className={`badge ${delivered ? 'badge-green' : 'badge-red'}`}>
-                        {delivered ? '✓ Delivered' : '✗ Failed'}
-                      </span>
-                    </div>
+                    <span className={`badge ${delivered ? 'badge-green' : 'badge-red'}`}>
+                      {delivered ? '✓ Delivered' : '✗ Failed'}
+                    </span>
                   </div>
                 );
               })

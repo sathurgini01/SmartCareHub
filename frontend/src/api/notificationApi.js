@@ -1,7 +1,8 @@
 import { notificationAPI } from './axiosConfig';
 
-export const getMyNotifications = () =>
-  notificationAPI.get('/me');
+// Backend requires ?userId=xxx
+export const getMyNotifications = (userId) =>
+  notificationAPI.get('/me', { params: { userId } });
 
 export const getNotificationById = (id) =>
   notificationAPI.get(`/${id}`);

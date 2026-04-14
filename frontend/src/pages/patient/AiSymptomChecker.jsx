@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
+import { useAuth } from '../../context/AuthContext';
 import { checkSymptoms, getSymptomHistory } from '../../api/aiSymptomApi';
-import { useEffect } from 'react';
 
 function AiSymptomChecker() {
+  const { user } = useAuth();
   const [form, setForm] = useState({ symptoms: '', age: '', gender: '', duration: '', notes: '' });
   const [result, setResult]   = useState(null);
   const [history, setHistory] = useState([]);
@@ -13,11 +14,12 @@ function AiSymptomChecker() {
   const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
-    getSymptomHistory()
+    // backend requires ?patientId=xxx
+    getSymptomHistory(user?.id)
       .then((r) => setHistory(r.data.data || []))
       .catch(() => {})
       .finally(() => setHistoryLoading(false));
-  }, []);
+  }, [user]);
 
   const handleChange = (e) =>
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -36,7 +38,8 @@ function AiSymptomChecker() {
     setLoading(true);
     setResult(null);
     try {
-      const res = await checkSymptoms(form);
+      // backend requires patientId + form data (notes → additionalNotes handled in api layer)
+      const res = await checkSymptoms(user?.id, form);
       setResult(res.data.data);
       setHistory((p) => [res.data.data, ...p]);
     } catch (err) {
@@ -170,7 +173,7 @@ function AiSymptomChecker() {
 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                   <p className="form-label" style={{ marginBottom: '10px' }}>AI Assessment</p>
-                  <p className="ai-response">{result.aiResponse || result.suggestion}</p>
+                  <p className="ai-response">{result.aiResponse}</p>
                 </div>
               </div>
             )}

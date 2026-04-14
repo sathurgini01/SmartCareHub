@@ -19,7 +19,8 @@ function DoctorConsultationRoom() {
       .then((r) => {
         const s = r.data.data;
         setSession(s);
-        if (s.status === 'active' && s.meetingLink) setMeetingUrl(s.meetingLink);
+        // backend field is sessionLink (not meetingLink)
+        if (s.status === 'active' && s.sessionLink) setMeetingUrl(s.sessionLink);
       })
       .catch(() => setError('Session not found.'))
       .finally(() => setLoading(false));
@@ -29,8 +30,9 @@ function DoctorConsultationRoom() {
     setActionLoading('join');
     setError('');
     try {
-      const res = await joinSession(session._id);
-      const url = res.data.data?.meetingLink || session.meetingLink;
+      // backend requires role in body
+      const res = await joinSession(session._id, 'doctor');
+      const url = res.data.data?.sessionLink || session.sessionLink;
       setMeetingUrl(url);
       setSession((p) => ({ ...p, status: 'active', doctorJoined: true }));
     } catch (err) {
@@ -45,7 +47,7 @@ function DoctorConsultationRoom() {
     setError('');
     try {
       await endSession(session._id);
-      setSession((p) => ({ ...p, status: 'completed' }));
+      setSession((p) => ({ ...p, status: 'ended' }));
       setMeetingUrl(null);
       setShowConfirm(null);
     } catch (err) {
@@ -126,7 +128,8 @@ function DoctorConsultationRoom() {
                 <p className="card-sub">Appointment ID: {appointmentId}</p>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {session?.status === 'scheduled' && (
+                {/* 'created' = scheduled (backend status) */}
+                {session?.status === 'created' && (
                   <>
                     <button
                       className="btn btn-success btn-sm"
@@ -158,7 +161,7 @@ function DoctorConsultationRoom() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
               <div>
                 <p className="form-label">Status</p>
-                <span className={`badge ${session?.status === 'active' ? 'badge-green' : session?.status === 'completed' ? 'badge-gray' : session?.status === 'cancelled' ? 'badge-red' : 'badge-yellow'}`}>
+                <span className={`badge ${session?.status === 'active' ? 'badge-green' : session?.status === 'ended' ? 'badge-gray' : session?.status === 'cancelled' ? 'badge-red' : 'badge-yellow'}`}>
                   {session?.status}
                 </span>
               </div>
@@ -200,7 +203,7 @@ function DoctorConsultationRoom() {
             </div>
           )}
 
-          {session?.status === 'completed' && (
+          {session?.status === 'ended' && (
             <div className="card" style={{ textAlign: 'center', padding: '32px' }}>
               <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
               <p className="card-title">Session Completed</p>

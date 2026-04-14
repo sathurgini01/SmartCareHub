@@ -6,7 +6,6 @@ import { getSessionByAppointment, joinSession } from '../../api/telemedicineApi'
 function TelemedicineConsultation() {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
-
   const [session, setSession]   = useState(null);
   const [loading, setLoading]   = useState(true);
   const [joining, setJoining]   = useState(false);
@@ -15,7 +14,12 @@ function TelemedicineConsultation() {
 
   useEffect(() => {
     getSessionByAppointment(appointmentId)
-      .then((r) => setSession(r.data.data))
+      .then((r) => {
+        const s = r.data.data;
+        setSession(s);
+        // backend field is sessionLink (not meetingLink)
+        if (s.status === 'active' && s.sessionLink) setMeetingUrl(s.sessionLink);
+      })
       .catch(() => setError('Session not found or not yet created by the doctor.'))
       .finally(() => setLoading(false));
   }, [appointmentId]);
@@ -25,8 +29,9 @@ function TelemedicineConsultation() {
     setJoining(true);
     setError('');
     try {
-      const res = await joinSession(session._id);
-      const url = res.data.data?.meetingLink || session.meetingLink;
+      // backend requires role in body
+      const res = await joinSession(session._id, 'patient');
+      const url = res.data.data?.sessionLink || session.sessionLink;
       setMeetingUrl(url);
       setSession((p) => ({ ...p, status: 'active', patientJoined: true }));
     } catch (err) {
@@ -37,10 +42,10 @@ function TelemedicineConsultation() {
   };
 
   const statusLabel = (s) => {
-    if (s === 'active')    return { label: 'Session Active',   cls: 'active' };
-    if (s === 'completed') return { label: 'Session Ended',    cls: 'ended'  };
-    if (s === 'cancelled') return { label: 'Session Cancelled', cls: 'ended' };
-    return { label: 'Waiting for Doctor', cls: 'waiting' };
+    if (s === 'active')    return { label: 'Session Active',    cls: 'active'  };
+    if (s === 'ended')     return { label: 'Session Ended',     cls: 'ended'   };
+    if (s === 'cancelled') return { label: 'Session Cancelled', cls: 'ended'   };
+    return { label: 'Waiting for Doctor', cls: 'waiting' }; // 'created'
   };
 
   if (loading) return (
@@ -57,7 +62,7 @@ function TelemedicineConsultation() {
       <div className="main-content">
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/dashboard')}>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/patient/notifications')}>
               ← Back
             </button>
             <div className="page-header" style={{ marginBottom: 0 }}>
@@ -86,7 +91,7 @@ function TelemedicineConsultation() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
                 <div>
                   <p className="form-label">Status</p>
-                  <span className={`badge ${session.status === 'active' ? 'badge-green' : session.status === 'scheduled' ? 'badge-yellow' : 'badge-gray'}`}>
+                  <span className={`badge ${session.status === 'active' ? 'badge-green' : session.status === 'created' ? 'badge-yellow' : 'badge-gray'}`}>
                     {session.status}
                   </span>
                 </div>
@@ -107,7 +112,7 @@ function TelemedicineConsultation() {
           </div>
 
           {/* Join Button */}
-          {!meetingUrl && session?.status !== 'completed' && session?.status !== 'cancelled' && (
+          {!meetingUrl && session?.status !== 'ended' && session?.status !== 'cancelled' && (
             <div className="card" style={{ marginBottom: '20px', textAlign: 'center', padding: '32px' }}>
               <p style={{ color: 'var(--text-muted)', marginBottom: '20px', fontSize: '15px' }}>
                 {session?.doctorJoined
@@ -148,21 +153,16 @@ function TelemedicineConsultation() {
             </div>
           )}
 
-          {session?.status === 'completed' && (
+          {session?.status === 'ended' && (
             <div className="card" style={{ textAlign: 'center', padding: '32px' }}>
               <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
               <p className="card-title">Consultation Completed</p>
               <p className="card-sub" style={{ marginTop: '8px', marginBottom: '20px' }}>
                 Your consultation has ended. Check your notifications for the summary.
               </p>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button className="btn btn-secondary" onClick={() => navigate('/patient/notifications')}>
-                  View Notifications
-                </button>
-                <button className="btn btn-primary" onClick={() => navigate('/prescriptions')}>
-                  My Prescriptions
-                </button>
-              </div>
+              <button className="btn btn-secondary" onClick={() => navigate('/patient/notifications')}>
+                View Notifications
+              </button>
             </div>
           )}
         </div>

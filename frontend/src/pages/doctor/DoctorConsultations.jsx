@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
+import { useAuth } from '../../context/AuthContext';
 import { getMySessions } from '../../api/telemedicineApi';
 
 function DoctorConsultations() {
@@ -9,26 +10,28 @@ function DoctorConsultations() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    getMySessions()
+    // backend requires role and userId query params
+    getMySessions('doctor', user?.id)
       .then((r) => setSessions(r.data.data || []))
       .catch(() => setError('Failed to load consultations.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const filtered = sessions.filter((s) => {
     if (filter === 'all')       return true;
-    if (filter === 'upcoming')  return ['scheduled', 'active'].includes(s.status);
-    if (filter === 'completed') return s.status === 'completed';
+    if (filter === 'upcoming')  return ['created', 'active'].includes(s.status);
+    if (filter === 'completed') return s.status === 'ended';
     return true;
   });
 
   const statusBadge = (s) => {
     if (s === 'active')    return <span className="badge badge-green">Active</span>;
-    if (s === 'completed') return <span className="badge badge-gray">Completed</span>;
+    if (s === 'ended')     return <span className="badge badge-gray">Completed</span>;
     if (s === 'cancelled') return <span className="badge badge-red">Cancelled</span>;
-    return <span className="badge badge-yellow">Scheduled</span>;
+    return <span className="badge badge-yellow">Scheduled</span>; // 'created'
   };
 
   const formatDate = (d) => d ? new Date(d).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
@@ -73,7 +76,7 @@ function DoctorConsultations() {
               <div className="consult-info">
                 <h3>Patient: {s.patientName || 'Patient'}</h3>
                 <p>
-                  Appointment: {s.appointmentId} · {formatDate(s.scheduledAt || s.createdAt)}
+                  Appointment: {s.appointmentId} · {formatDate(s.scheduledStartTime || s.createdAt)}
                 </p>
                 <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {statusBadge(s.status)}
@@ -82,7 +85,7 @@ function DoctorConsultations() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                {['scheduled', 'active'].includes(s.status) && (
+                {['created', 'active'].includes(s.status) && (
                   <button
                     className="btn btn-success btn-sm"
                     onClick={() => navigate(`/doctor/consultation/${s.appointmentId}`)}
@@ -90,7 +93,7 @@ function DoctorConsultations() {
                     🎥 Join
                   </button>
                 )}
-                {s.status === 'completed' && (
+                {s.status === 'ended' && (
                   <span className="text-muted" style={{ fontSize: '13px', alignSelf: 'center' }}>Ended</span>
                 )}
               </div>
