@@ -15,19 +15,16 @@ function Navbar() {
   const isActive = (path) => location.pathname.startsWith(path) ? 'nav-link active' : 'nav-link';
 
   const patientLinks = [
-    { to: '/dashboard', label: 'Dashboard' },
     { to: '/patient/symptom-checker', label: 'Symptom Checker' },
     { to: '/patient/notifications', label: 'Notifications' },
   ];
 
   const doctorLinks = [
-    { to: '/dashboard', label: 'Dashboard' },
     { to: '/doctor/consultations', label: 'Consultations' },
     { to: '/doctor/notifications', label: 'Notifications' },
   ];
 
   const adminLinks = [
-    { to: '/dashboard', label: 'Dashboard' },
     { to: '/admin/telemedicine/logs', label: 'Telemedicine' },
     { to: '/admin/notifications/logs', label: 'Notifications' },
     { to: '/admin/ai/logs', label: 'AI Logs' },
@@ -40,7 +37,7 @@ function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link to="/dashboard" className="navbar-brand">
+      <Link to="/" className="navbar-brand">
         Smart<span>Care</span>Hub
       </Link>
 
