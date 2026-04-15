@@ -49,7 +49,7 @@ const LoginPage = () => {
       <div className="login-container animate-scaleIn">
         <div className="login-header">
           <div className="login-icon">⚕️</div>
-          <h1>Welcome to MediBook</h1>
+          <h1>Welcome to SmartCareHub</h1>
           <p>Sign in to book appointments and manage your healthcare</p>
         </div>
 

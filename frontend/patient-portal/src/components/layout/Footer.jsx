@@ -7,9 +7,9 @@ const Footer = () => {
         <div className="footer-content">
           <div className="footer-brand">
             <span className="logo-icon">⚕️</span>
-            <span className="logo-text" style={{ color: 'white' }}>MediBook</span>
+            <span className="logo-text" style={{ color: 'white' }}>SmartCareHub</span>
           </div>
-          <p className="footer-text">© 2024 MediBook Healthcare. SLIIT Distributed Systems Project.</p>
+          <p className="footer-text">© 2024 SmartCareHub. SLIIT Distributed Systems Project.</p>
         </div>
       </div>
     </footer>

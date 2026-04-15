@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
       // Mock auth endpoint - replace with Member 1's: POST /api/auth/login
       const response = await api.post('/auth/login', { email, name, role });
       
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         const { token: newToken, user: userData } = response.data.data;
         
         setToken(newToken);
@@ -37,6 +37,8 @@ export const AuthProvider = ({ children }) => {
         
         return { success: true, user: userData };
       }
+      
+      return { success: false, message: response.data?.message || 'Login failed from API' };
     } catch (error) {
       console.error('Login error:', error);
       return { 

@@ -143,7 +143,7 @@ const HomePage = () => {
         <div className="container">
           <div className="cta-card">
             <h2>Ready to Book Your Appointment?</h2>
-            <p>Join thousands of patients who trust MediBook for their healthcare needs</p>
+            <p>Join thousands of patients who trust SmartCareHub for their healthcare needs</p>
             <Link to="/doctors" className="btn btn-accent btn-lg">
               Browse Doctors <FiArrowRight />
             </Link>
@@ -157,9 +157,9 @@ const HomePage = () => {
           <div className="footer-content">
             <div className="footer-brand">
               <span className="logo-icon">⚕️</span>
-              <span className="logo-text" style={{ color: 'white' }}>MediBook</span>
+              <span className="logo-text" style={{ color: 'white' }}>SmartCareHub</span>
             </div>
-            <p className="footer-text">© 2024 MediBook Healthcare. SLIIT Distributed Systems Project.</p>
+            <p className="footer-text">© 2024 SmartCareHub. SLIIT Distributed Systems Project.</p>
           </div>
         </div>
       </footer>

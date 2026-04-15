@@ -39,7 +39,7 @@ const Navbar = () => {
           <div className="navbar-logo">
             <span className="logo-icon">⚕️</span>
             <div>
-              <span className="logo-text">MediBook</span>
+              <span className="logo-text">SmartCareHub</span>
               <span className="logo-sub">Healthcare</span>
             </div>
           </div>
