@@ -1,0 +1,1639 @@
+========================================================
+APPENDIX – Sathurgini Kalanantharasan (IT23534704)
+SE3020 Distributed Systems – Group SE-51
+Services: Telemedicine | Notification | AI Symptom
+========================================================
+
+
+════════════════════════════════════════════════════════
+APPENDIX A – TELEMEDICINE SERVICE (Backend)
+════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────
+A1. backend/telemedicine-service/src/server.js
+──────────────────────────────────────────────────────
+require("dotenv").config();
+const mongoose = require("mongoose");
+const app = require("./app");
+
+const PORT = process.env.PORT || 5004;
+const MONGO_URI = process.env.MONGO_URI;
+
+// Start HTTP server immediately — container stays alive regardless of DB
+app.listen(PORT, () => {
+  console.log(`Telemedicine Service running on port ${PORT}`);
+});
+
+// Connect MongoDB separately (non-blocking)
+if (MONGO_URI) {
+  mongoose
+    .connect(MONGO_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch((error) => console.error("MongoDB connection failed:", error.message));
+} else {
+  console.warn("MONGO_URI not set — running without database");
+}
+
+
+──────────────────────────────────────────────────────
+A2. backend/telemedicine-service/src/app.js
+──────────────────────────────────────────────────────
+const express = require("express");
+const cors = require("cors");
+const telemedicineRoutes = require("./routes/telemedicineRoutes");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    service: "telemedicine-service",
+    message: "Telemedicine service is running"
+  });
+});
+
+app.use("/api/telemedicine", telemedicineRoutes);
+
+module.exports = app;
+
+
+──────────────────────────────────────────────────────
+A3. backend/telemedicine-service/src/models/TelemedicineSession.js
+──────────────────────────────────────────────────────
+const mongoose = require("mongoose");
+
+const telemedicineSessionSchema = new mongoose.Schema(
+  {
+    appointmentId: {
+      type: String,
+      required: [true, "Appointment ID is required"],
+      unique: true,
+      index: true,
+      trim: true,
+    },
+    doctorId: {
+      type: String,
+      required: [true, "Doctor ID is required"],
+      index: true,
+      trim: true,
+    },
+    patientId: {
+      type: String,
+      required: [true, "Patient ID is required"],
+      index: true,
+      trim: true,
+    },
+    provider: {
+      type: String,
+      enum: ["jitsi", "twilio", "agora"],
+      default: "jitsi",
+    },
+    sessionLink: {
+      type: String,
+      required: [true, "Session link is required"],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ["created", "active", "ended", "cancelled"],
+      default: "created",
+      index: true,
+    },
+    scheduledStartTime: {
+      type: Date,
+      required: [true, "Scheduled start time is required"],
+    },
+    actualStartTime: {
+      type: Date,
+      default: null,
+    },
+    actualEndTime: {
+      type: Date,
+      default: null,
+    },
+    patientJoined: {
+      type: Boolean,
+      default: false,
+    },
+    doctorJoined: {
+      type: Boolean,
+      default: false,
+    },
+    createdBy: {
+      type: String,
+      default: "appointment-service",
+      trim: true,
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("TelemedicineSession", telemedicineSessionSchema);
+
+
+──────────────────────────────────────────────────────
+A4. backend/telemedicine-service/src/controllers/telemedicineController.js
+──────────────────────────────────────────────────────
+const TelemedicineSession = require("../models/TelemedicineSession");
+const { generateMeetingLink } = require("../utils/generateMeetingLink");
+
+const createSession = async (req, res) => {
+  try {
+    const { appointmentId, doctorId, patientId, scheduledStartTime, provider } = req.body;
+
+    if (!appointmentId || !doctorId || !patientId || !scheduledStartTime) {
+      return res.status(400).json({
+        success: false,
+        message: "appointmentId, doctorId, patientId, and scheduledStartTime are required",
+      });
+    }
+
+    const existingSession = await TelemedicineSession.findOne({ appointmentId });
+
+    if (existingSession) {
+      return res.status(409).json({
+        success: false,
+        message: "A telemedicine session already exists for this appointment",
+        data: existingSession,
+      });
+    }
+
+    const session = await TelemedicineSession.create({
+      appointmentId,
+      doctorId,
+      patientId,
+      scheduledStartTime,
+      provider: provider || "jitsi",
+      sessionLink: generateMeetingLink(appointmentId),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Telemedicine session created successfully",
+      data: session,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create telemedicine session",
+      error: error.message,
+    });
+  }
+};
+
+const getSessionByAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+
+    const session = await TelemedicineSession.findOne({ appointmentId });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "No telemedicine session found for this appointment",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: session,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch telemedicine session",
+      error: error.message,
+    });
+  }
+};
+
+const joinSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { role } = req.body;
+
+    const session = await TelemedicineSession.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Telemedicine session not found",
+      });
+    }
+
+    if (!["doctor", "patient"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role. Role must be doctor or patient",
+      });
+    }
+
+    if (session.status === "ended" || session.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot join a ${session.status} session`,
+      });
+    }
+
+    if (role === "patient" && session.patientJoined) {
+      return res.status(400).json({
+        success: false,
+        message: "Patient already joined this session"
+      });
+    }
+
+    if (role === "doctor" && session.doctorJoined) {
+      return res.status(400).json({
+        success: false,
+        message: "Doctor already joined this session"
+      });
+    }
+
+    if (role === "patient") session.patientJoined = true;
+    if (role === "doctor")  session.doctorJoined  = true;
+
+    if (!session.actualStartTime) session.actualStartTime = new Date();
+
+    session.status = "active";
+    await session.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Joined telemedicine session successfully",
+      data: session,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to join telemedicine session",
+      error: error.message,
+    });
+  }
+};
+
+const endSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = await TelemedicineSession.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: "Telemedicine session not found" });
+    }
+
+    if (session.status === "ended") {
+      return res.status(400).json({ success: false, message: "Session already ended" });
+    }
+
+    session.status = "ended";
+    session.actualEndTime = new Date();
+    await session.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Telemedicine session ended successfully",
+      data: session,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to end telemedicine session",
+      error: error.message,
+    });
+  }
+};
+
+const getMySessions = async (req, res) => {
+  try {
+    const { role, userId } = req.query;
+
+    if (!role || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "role and userId query parameters are required",
+      });
+    }
+
+    let filter = {};
+    if (role === "doctor")       filter.doctorId  = userId;
+    else if (role === "patient") filter.patientId = userId;
+    else {
+      return res.status(400).json({ success: false, message: "Role must be either doctor or patient" });
+    }
+
+    const sessions = await TelemedicineSession.find(filter).sort({ scheduledStartTime: 1 });
+
+    return res.status(200).json({ success: true, count: sessions.length, data: sessions });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch sessions",
+      error: error.message,
+    });
+  }
+};
+
+const getAllSessionLogs = async (_req, res) => {
+  try {
+    const sessions = await TelemedicineSession.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, count: sessions.length, data: sessions });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch session logs",
+      error: error.message,
+    });
+  }
+};
+
+const cancelSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = await TelemedicineSession.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: "Telemedicine session not found" });
+    }
+
+    if (session.status === "ended" || session.status === "cancelled") {
+      return res.status(400).json({ success: false, message: `Session is already ${session.status}` });
+    }
+
+    session.status = "cancelled";
+    await session.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Telemedicine session cancelled successfully",
+      data: session,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to cancel telemedicine session",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  createSession,
+  getSessionByAppointment,
+  joinSession,
+  endSession,
+  cancelSession,
+  getMySessions,
+  getAllSessionLogs,
+};
+
+
+──────────────────────────────────────────────────────
+A5. backend/telemedicine-service/src/routes/telemedicineRoutes.js
+──────────────────────────────────────────────────────
+const express = require("express");
+const {
+  createSession,
+  getSessionByAppointment,
+  joinSession,
+  endSession,
+  cancelSession,
+  getMySessions,
+  getAllSessionLogs,
+} = require("../controllers/telemedicineController");
+const { protect, restrictTo } = require("../middleware/authMiddleware");
+
+const router = express.Router();
+
+router.post("/sessions", protect, restrictTo("admin", "doctor"), createSession);
+router.get("/sessions/appointment/:appointmentId", protect, restrictTo("patient", "doctor", "admin"), getSessionByAppointment);
+router.post("/sessions/:sessionId/join", protect, restrictTo("patient", "doctor"), joinSession);
+router.patch("/sessions/:sessionId/end", protect, restrictTo("doctor", "admin"), endSession);
+router.patch("/sessions/:sessionId/cancel", protect, restrictTo("doctor", "admin"), cancelSession);
+router.get("/my-sessions", protect, restrictTo("patient", "doctor"), getMySessions);
+router.get("/admin/logs", protect, restrictTo("admin"), getAllSessionLogs);
+
+module.exports = router;
+
+
+──────────────────────────────────────────────────────
+A6. backend/telemedicine-service/src/middleware/authMiddleware.js
+──────────────────────────────────────────────────────
+const jwt = require("jsonwebtoken");
+
+const protect = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: No token provided",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: Invalid or expired token",
+    });
+  }
+};
+
+const restrictTo = (...roles) => (req, res, next) => {
+  if (!roles.includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      message: `Forbidden: Access restricted to [${roles.join(", ")}] roles`,
+    });
+  }
+  next();
+};
+
+module.exports = { protect, restrictTo };
+
+
+──────────────────────────────────────────────────────
+A7. backend/telemedicine-service/src/utils/generateMeetingLink.js
+──────────────────────────────────────────────────────
+const sanitizeRoomName = (value) => {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+};
+
+const generateMeetingLink = (appointmentId) => {
+  const safeRoom = sanitizeRoomName(`smartcare-${appointmentId}`);
+  return `https://meet.jit.si/${safeRoom}`;
+};
+
+module.exports = { generateMeetingLink };
+
+
+════════════════════════════════════════════════════════
+APPENDIX B – NOTIFICATION SERVICE (Backend)
+════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────
+B1. backend/notification-service/src/server.js
+──────────────────────────────────────────────────────
+require("dotenv").config();
+const mongoose = require("mongoose");
+const app = require("./app");
+
+const PORT = process.env.PORT || 5005;
+const MONGO_URI = process.env.MONGO_URI;
+
+app.listen(PORT, () => {
+  console.log(`Notification Service running on port ${PORT}`);
+});
+
+if (MONGO_URI) {
+  mongoose
+    .connect(MONGO_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch((error) => console.error("MongoDB connection failed:", error.message));
+} else {
+  console.warn("MONGO_URI not set — running without database");
+}
+
+
+──────────────────────────────────────────────────────
+B2. backend/notification-service/src/app.js
+──────────────────────────────────────────────────────
+const express = require("express");
+const cors = require("cors");
+const notificationRoutes = require("./routes/notificationRoutes");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    service: "notification-service",
+    message: "Notification service is running"
+  });
+});
+
+app.use("/api/notifications", notificationRoutes);
+
+module.exports = app;
+
+
+──────────────────────────────────────────────────────
+B3. backend/notification-service/src/models/Notification.js
+──────────────────────────────────────────────────────
+const mongoose = require("mongoose");
+
+const notificationSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: String,
+      required: [true, "User ID is required"],
+      index: true,
+      trim: true,
+    },
+    appointmentId: {
+      type: String,
+      default: null,
+      index: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: ["email", "sms"],
+      required: [true, "Notification type is required"],
+    },
+    category: {
+      type: String,
+      enum: ["booking_confirmation", "consultation_reminder", "consultation_completion"],
+      required: [true, "Notification category is required"],
+    },
+    recipientEmail: { type: String, default: null, trim: true, lowercase: true },
+    recipientPhone:  { type: String, default: null, trim: true },
+    subject:         { type: String, default: "", trim: true },
+    message: {
+      type: String,
+      required: [true, "Message is required"],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "sent", "failed"],
+      default: "sent",
+    },
+    provider: { type: String, default: "mock", trim: true },
+    sentAt:   { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Notification", notificationSchema);
+
+
+──────────────────────────────────────────────────────
+B4. backend/notification-service/src/controllers/notificationController.js
+──────────────────────────────────────────────────────
+const Notification = require("../models/Notification");
+const { sendEmail } = require("../utils/emailSender");
+const { sendSms }   = require("../utils/smsSender");
+
+const sendEmailNotification = async (req, res) => {
+  try {
+    const { userId, appointmentId, recipientEmail, subject, message, category } = req.body;
+
+    if (!userId || !recipientEmail || !message || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "userId, recipientEmail, category, and message are required",
+      });
+    }
+
+    let status   = "sent";
+    let provider = process.env.EMAIL_PROVIDER || "gmail";
+
+    try {
+      await sendEmail({ to: recipientEmail, subject: subject || "SmartCareHub Notification", text: message });
+    } catch (sendError) {
+      console.error("Email delivery failed:", sendError.message);
+      status = "failed";
+    }
+
+    const notification = await Notification.create({
+      userId,
+      appointmentId: appointmentId || null,
+      type: "email",
+      category,
+      recipientEmail,
+      subject: subject || "SmartCareHub Notification",
+      message,
+      status,
+      provider,
+      sentAt: new Date(),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: status === "sent" ? "Email notification sent successfully" : "Email notification logged but delivery failed",
+      data: notification,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to process email notification", error: error.message });
+  }
+};
+
+const sendSmsNotification = async (req, res) => {
+  try {
+    const { userId, appointmentId, recipientPhone, message, category } = req.body;
+
+    if (!userId || !recipientPhone || !message || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "userId, recipientPhone, category, and message are required",
+      });
+    }
+
+    let status = "sent";
+
+    try {
+      await sendSms({ to: recipientPhone, message });
+    } catch (sendError) {
+      console.error("SMS delivery failed:", sendError.message);
+      status = "failed";
+    }
+
+    const notification = await Notification.create({
+      userId,
+      appointmentId: appointmentId || null,
+      type: "sms",
+      category,
+      recipientPhone,
+      message,
+      status,
+      provider: "twilio",
+      sentAt: new Date(),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: status === "sent" ? "SMS notification sent successfully" : "SMS notification logged but delivery failed",
+      data: notification,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to process SMS notification", error: error.message });
+  }
+};
+
+const getMyNotifications = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "userId query parameter is required" });
+    }
+    const notifications = await Notification.find({ userId }).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, count: notifications.length, data: notifications });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch notifications", error: error.message });
+  }
+};
+
+const getNotificationById = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const notification = await Notification.findById(notificationId);
+    if (!notification) {
+      return res.status(404).json({ success: false, message: "Notification not found" });
+    }
+    return res.status(200).json({ success: true, data: notification });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch notification", error: error.message });
+  }
+};
+
+const getAllNotificationLogs = async (_req, res) => {
+  try {
+    const notifications = await Notification.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, count: notifications.length, data: notifications });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch notification logs", error: error.message });
+  }
+};
+
+module.exports = {
+  sendEmailNotification,
+  sendSmsNotification,
+  getMyNotifications,
+  getNotificationById,
+  getAllNotificationLogs,
+};
+
+
+──────────────────────────────────────────────────────
+B5. backend/notification-service/src/routes/notificationRoutes.js
+──────────────────────────────────────────────────────
+const express = require("express");
+const {
+  sendEmailNotification,
+  sendSmsNotification,
+  getMyNotifications,
+  getNotificationById,
+  getAllNotificationLogs,
+} = require("../controllers/notificationController");
+const { protect, restrictTo } = require("../middleware/authMiddleware");
+
+const router = express.Router();
+
+router.post("/send-email", protect, restrictTo("admin", "doctor", "patient"), sendEmailNotification);
+router.post("/send-sms",   protect, restrictTo("admin", "doctor", "patient"), sendSmsNotification);
+router.get("/me",          protect, restrictTo("patient", "doctor", "admin"), getMyNotifications);
+router.get("/admin/logs",  protect, restrictTo("admin"),                       getAllNotificationLogs);
+router.get("/:notificationId", protect, restrictTo("patient", "doctor", "admin"), getNotificationById);
+
+module.exports = router;
+
+
+──────────────────────────────────────────────────────
+B6. backend/notification-service/src/utils/emailSender.js
+──────────────────────────────────────────────────────
+const nodemailer = require("nodemailer");
+
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    service: process.env.EMAIL_PROVIDER || "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+};
+
+const sendEmail = async ({ to, subject, text }) => {
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `SmartCareHub <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    text,
+  });
+};
+
+module.exports = { sendEmail };
+
+
+──────────────────────────────────────────────────────
+B7. backend/notification-service/src/utils/smsSender.js
+──────────────────────────────────────────────────────
+const twilio = require("twilio");
+
+const sendSms = async ({ to, message }) => {
+  const client = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+
+  await client.messages.create({
+    body: message,
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to,
+  });
+};
+
+module.exports = { sendSms };
+
+
+════════════════════════════════════════════════════════
+APPENDIX C – AI SYMPTOM SERVICE (Backend)
+════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────
+C1. backend/ai-symptom-service/src/server.js
+──────────────────────────────────────────────────────
+require("dotenv").config();
+const mongoose = require("mongoose");
+const app = require("./app");
+
+const PORT = process.env.PORT || 5006;
+const MONGO_URI = process.env.MONGO_URI;
+
+app.listen(PORT, () => {
+  console.log(`AI Symptom Service running on port ${PORT}`);
+});
+
+if (MONGO_URI) {
+  mongoose
+    .connect(MONGO_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch((error) => console.error("MongoDB connection failed:", error.message));
+} else {
+  console.warn("MONGO_URI not set — running without database");
+}
+
+
+──────────────────────────────────────────────────────
+C2. backend/ai-symptom-service/src/app.js
+──────────────────────────────────────────────────────
+const express = require("express");
+const cors = require("cors");
+const aiSymptomRoutes = require("./routes/aiSymptomRoutes");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    service: "ai-symptom-service",
+    message: "AI Symptom service is running"
+  });
+});
+
+app.use("/api/ai-symptom", aiSymptomRoutes);
+
+module.exports = app;
+
+
+──────────────────────────────────────────────────────
+C3. backend/ai-symptom-service/src/models/AiSymptomQuery.js
+──────────────────────────────────────────────────────
+const mongoose = require("mongoose");
+
+const aiSymptomQuerySchema = new mongoose.Schema(
+  {
+    patientId:           { type: String, required: [true, "Patient ID is required"], index: true, trim: true },
+    symptoms:            { type: String, required: [true, "Symptoms are required"], trim: true },
+    age:                 { type: Number, default: null, min: 0 },
+    gender:              { type: String, enum: ["male", "female", "other", "prefer_not_to_say", null], default: null },
+    duration:            { type: String, default: "", trim: true },
+    additionalNotes:     { type: String, default: "", trim: true },
+    recommendedSpecialty:{ type: String, required: true, trim: true },
+    riskLevel:           { type: String, enum: ["low", "medium", "high"], default: "low" },
+    aiResponse:          { type: String, required: true, trim: true },
+    disclaimerShown:     { type: Boolean, default: true },
+    sourceModel:         { type: String, default: "rule-based-v1", trim: true },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("AiSymptomQuery", aiSymptomQuerySchema);
+
+
+──────────────────────────────────────────────────────
+C4. backend/ai-symptom-service/src/controllers/aiSymptomController.js
+──────────────────────────────────────────────────────
+const AiSymptomQuery = require("../models/AiSymptomQuery");
+const { analyzeSymptoms } = require("../utils/analyzeSymptoms");
+
+const DISCLAIMER =
+  "This is a preliminary AI suggestion and not a medical diagnosis. Please consult a qualified doctor for proper medical advice.";
+
+const checkSymptoms = async (req, res) => {
+  try {
+    const { patientId, symptoms, age, gender, duration, additionalNotes } = req.body;
+
+    if (!patientId || !symptoms) {
+      return res.status(400).json({ success: false, message: "patientId and symptoms are required" });
+    }
+
+    if (symptoms.trim().length < 5) {
+      return res.status(400).json({ success: false, message: "Symptoms must contain at least 5 characters" });
+    }
+
+    const analysis = await analyzeSymptoms(symptoms, age, gender, duration, additionalNotes);
+
+    const savedQuery = await AiSymptomQuery.create({
+      patientId,
+      symptoms,
+      age:             age ?? null,
+      gender:          gender ?? null,
+      duration:        duration || "",
+      additionalNotes: additionalNotes || "",
+      recommendedSpecialty: analysis.recommendedSpecialty,
+      riskLevel:       analysis.riskLevel,
+      aiResponse:      analysis.aiResponse,
+      disclaimerShown: true,
+      sourceModel:     analysis.sourceModel || "rule-based-v1",
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Symptom analysis completed successfully",
+      data: { ...savedQuery.toObject(), disclaimer: DISCLAIMER },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to analyze symptoms", error: error.message });
+  }
+};
+
+const getSymptomHistory = async (req, res) => {
+  try {
+    const { patientId } = req.query;
+    if (!patientId) {
+      return res.status(400).json({ success: false, message: "patientId query parameter is required" });
+    }
+    const history = await AiSymptomQuery.find({ patientId }).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, count: history.length, data: history });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch symptom history", error: error.message });
+  }
+};
+
+const getSymptomQueryById = async (req, res) => {
+  try {
+    const { queryId } = req.params;
+    const query = await AiSymptomQuery.findById(queryId);
+    if (!query) {
+      return res.status(404).json({ success: false, message: "AI symptom query not found" });
+    }
+    return res.status(200).json({ success: true, data: { ...query.toObject(), disclaimer: DISCLAIMER } });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch AI symptom query", error: error.message });
+  }
+};
+
+const getAllAiLogs = async (_req, res) => {
+  try {
+    const logs = await AiSymptomQuery.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, count: logs.length, data: logs });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch AI logs", error: error.message });
+  }
+};
+
+module.exports = { checkSymptoms, getSymptomHistory, getSymptomQueryById, getAllAiLogs };
+
+
+──────────────────────────────────────────────────────
+C5. backend/ai-symptom-service/src/routes/aiSymptomRoutes.js
+──────────────────────────────────────────────────────
+const express = require("express");
+const {
+  checkSymptoms,
+  getSymptomHistory,
+  getSymptomQueryById,
+  getAllAiLogs,
+} = require("../controllers/aiSymptomController");
+const { protect, restrictTo } = require("../middleware/authMiddleware");
+
+const router = express.Router();
+
+router.post("/check",       protect, restrictTo("patient"),          checkSymptoms);
+router.get("/history",      protect, restrictTo("patient", "admin"), getSymptomHistory);
+router.get("/admin/logs",   protect, restrictTo("admin"),            getAllAiLogs);
+router.get("/:queryId",     protect, restrictTo("patient", "admin"), getSymptomQueryById);
+
+module.exports = router;
+
+
+──────────────────────────────────────────────────────
+C6. backend/ai-symptom-service/src/utils/analyzeSymptoms.js
+──────────────────────────────────────────────────────
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
+
+const analyzeWithGemini = async (symptoms, age, gender, duration, additionalNotes) => {
+  const genAI = new GoogleGenerativeAI(process.env.AI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: process.env.AI_MODEL || "gemini-2.0-flash" });
+  const prompt = buildPrompt(symptoms, age, gender, duration, additionalNotes);
+  const result = await model.generateContent(prompt);
+  return parseJsonResponse(result.response.text().trim());
+};
+
+const analyzeWithGroq = async (symptoms, age, gender, duration, additionalNotes) => {
+  const groq = new Groq({ apiKey: process.env.AI_API_KEY });
+  const response = await groq.chat.completions.create({
+    model: process.env.AI_MODEL || "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: buildPrompt(symptoms, age, gender, duration, additionalNotes) }],
+    temperature: 0.3,
+  });
+  return parseJsonResponse(response.choices[0].message.content.trim());
+};
+
+const buildPrompt = (symptoms, age, gender, duration, additionalNotes) => {
+  return `You are a medical triage assistant for SmartCareHub, a telemedicine platform.
+A patient has described the following symptoms: "${symptoms}".
+Additional context:
+- Age: ${age || "not provided"}
+- Gender: ${gender || "not provided"}
+- Duration: ${duration || "not provided"}
+- Additional notes: ${additionalNotes || "none"}
+
+Respond ONLY with a valid JSON object using this exact structure (no markdown, no extra text):
+{
+  "recommendedSpecialty": "<specific medical specialty>",
+  "riskLevel": "<low|medium|high>",
+  "aiResponse": "<2-3 sentence preliminary health suggestion>"
+}`;
+};
+
+const parseJsonResponse = (text) => {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("AI returned an unparseable response");
+  const parsed = JSON.parse(jsonMatch[0]);
+  if (!parsed.recommendedSpecialty || !parsed.riskLevel || !parsed.aiResponse) {
+    throw new Error("AI response is missing required fields");
+  }
+  if (!["low", "medium", "high"].includes(parsed.riskLevel)) parsed.riskLevel = "low";
+  return parsed;
+};
+
+const analyzeWithRules = (symptomsText) => {
+  const text = String(symptomsText || "").toLowerCase();
+
+  if (text.includes("chest pain") || text.includes("palpitations") || text.includes("heart")) {
+    return { recommendedSpecialty: "Cardiology", riskLevel: "high",
+      aiResponse: "Your symptoms may require urgent review by a cardiologist. Chest pain and palpitations can indicate serious cardiac conditions. Please seek medical advice as soon as possible." };
+  }
+  if (text.includes("rash") || text.includes("skin") || text.includes("itch") || text.includes("acne")) {
+    return { recommendedSpecialty: "Dermatology", riskLevel: "medium",
+      aiResponse: "Your symptoms may be related to a skin condition. A dermatologist is the most suitable specialist for evaluation and treatment of skin-related issues." };
+  }
+  if (text.includes("headache") || text.includes("numbness") || text.includes("dizziness") || text.includes("seizure") || text.includes("memory")) {
+    return { recommendedSpecialty: "Neurology", riskLevel: "medium",
+      aiResponse: "Your symptoms may require neurological evaluation. Persistent headaches, dizziness, or numbness can have various neurological causes that a specialist should assess." };
+  }
+  if (text.includes("cough") || text.includes("fever") || text.includes("cold") || text.includes("flu") || text.includes("sore throat")) {
+    return { recommendedSpecialty: "General Medicine", riskLevel: "low",
+      aiResponse: "Your symptoms are consistent with a common respiratory or general medical condition. A general physician can assess you and recommend appropriate treatment." };
+  }
+  if (text.includes("stomach") || text.includes("abdomen") || text.includes("nausea") || text.includes("vomit")) {
+    return { recommendedSpecialty: "Gastroenterology", riskLevel: "medium",
+      aiResponse: "Your symptoms may be related to a gastrointestinal condition. A gastroenterologist can evaluate digestive issues and recommend appropriate tests or treatment." };
+  }
+  if (text.includes("joint") || text.includes("bone") || text.includes("back pain") || text.includes("fracture")) {
+    return { recommendedSpecialty: "Orthopaedics", riskLevel: "medium",
+      aiResponse: "Your symptoms may relate to a musculoskeletal condition. An orthopaedic specialist can assess joint, bone, or back-related issues and suggest appropriate management." };
+  }
+  if (text.includes("eye") || text.includes("vision") || text.includes("blur")) {
+    return { recommendedSpecialty: "Ophthalmology", riskLevel: "medium",
+      aiResponse: "Your symptoms may be related to an eye condition. An ophthalmologist can thoroughly evaluate your vision and eye health." };
+  }
+  return { recommendedSpecialty: "General Medicine", riskLevel: "low",
+    aiResponse: "Based on the provided symptoms, a general physician is recommended for an initial consultation and assessment." };
+};
+
+const analyzeSymptoms = async (symptoms, age, gender, duration, additionalNotes) => {
+  const provider = process.env.AI_PROVIDER;
+  const apiKey   = process.env.AI_API_KEY;
+  const isKeySet = apiKey && apiKey !== "your_ai_api_key_here";
+
+  if (isKeySet && provider === "gemini") {
+    try {
+      const result = await analyzeWithGemini(symptoms, age, gender, duration, additionalNotes);
+      return { ...result, sourceModel: process.env.AI_MODEL || "gemini-2.0-flash" };
+    } catch (err) {
+      console.error("Gemini AI failed, falling back to rule-based:", err.message);
+    }
+  }
+
+  if (isKeySet && provider === "groq") {
+    try {
+      const result = await analyzeWithGroq(symptoms, age, gender, duration, additionalNotes);
+      return { ...result, sourceModel: process.env.AI_MODEL || "llama-3.3-70b-versatile" };
+    } catch (err) {
+      console.error("Groq AI failed, falling back to rule-based:", err.message);
+    }
+  }
+
+  return { ...analyzeWithRules(symptoms), sourceModel: "rule-based-v1" };
+};
+
+module.exports = { analyzeSymptoms };
+
+
+════════════════════════════════════════════════════════
+APPENDIX D – FRONTEND (API Layer)
+════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────
+D1. frontend/src/api/telemedicineApi.js
+──────────────────────────────────────────────────────
+import { telemedicineAPI } from './axiosConfig';
+
+export const getSessionByAppointment = (appointmentId) =>
+  telemedicineAPI.get(`/sessions/appointment/${appointmentId}`);
+
+export const joinSession = (sessionId, role) =>
+  telemedicineAPI.post(`/sessions/${sessionId}/join`, { role });
+
+export const endSession = (sessionId) =>
+  telemedicineAPI.patch(`/sessions/${sessionId}/end`);
+
+export const cancelSession = (sessionId) =>
+  telemedicineAPI.patch(`/sessions/${sessionId}/cancel`);
+
+export const getMySessions = (role, userId) =>
+  telemedicineAPI.get('/my-sessions', { params: { role, userId } });
+
+export const getAdminLogs = () =>
+  telemedicineAPI.get('/admin/logs');
+
+
+──────────────────────────────────────────────────────
+D2. frontend/src/api/notificationApi.js
+──────────────────────────────────────────────────────
+import { notificationAPI } from './axiosConfig';
+
+export const getMyNotifications = (userId) =>
+  notificationAPI.get('/me', { params: { userId } });
+
+export const getNotificationById = (id) =>
+  notificationAPI.get(`/${id}`);
+
+export const getAdminLogs = () =>
+  notificationAPI.get('/admin/logs');
+
+
+──────────────────────────────────────────────────────
+D3. frontend/src/api/aiSymptomApi.js
+──────────────────────────────────────────────────────
+import { aiSymptomAPI } from './axiosConfig';
+
+export const checkSymptoms = (patientId, formData) =>
+  aiSymptomAPI.post('/check', {
+    patientId,
+    symptoms:        formData.symptoms,
+    age:             formData.age,
+    gender:          formData.gender,
+    duration:        formData.duration,
+    additionalNotes: formData.notes,
+  });
+
+export const getSymptomHistory = (patientId) =>
+  aiSymptomAPI.get('/history', { params: { patientId } });
+
+export const getAdminLogs = () =>
+  aiSymptomAPI.get('/admin/logs');
+
+
+════════════════════════════════════════════════════════
+APPENDIX E – FRONTEND (Patient Pages)
+════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────
+E1. frontend/src/pages/patient/TelemedicineConsultation.jsx
+──────────────────────────────────────────────────────
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import Navbar from '../../components/Navbar';
+import { getSessionByAppointment, joinSession } from '../../api/telemedicineApi';
+
+function TelemedicineConsultation() {
+  const { appointmentId } = useParams();
+  const navigate = useNavigate();
+  const [session, setSession]       = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [joining, setJoining]       = useState(false);
+  const [meetingUrl, setMeetingUrl] = useState(null);
+  const [error, setError]           = useState('');
+
+  useEffect(() => {
+    getSessionByAppointment(appointmentId)
+      .then((r) => {
+        const s = r.data.data;
+        setSession(s);
+        if (s.status === 'active' && s.sessionLink) setMeetingUrl(s.sessionLink);
+      })
+      .catch(() => setError('Session not found or not yet created by the doctor.'))
+      .finally(() => setLoading(false));
+  }, [appointmentId]);
+
+  const handleJoin = async () => {
+    if (!session?._id) return;
+    setJoining(true);
+    setError('');
+    try {
+      const res = await joinSession(session._id, 'patient');
+      const url = res.data.data?.sessionLink || session.sessionLink;
+      setMeetingUrl(url);
+      setSession((p) => ({ ...p, status: 'active', patientJoined: true }));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to join session.');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  if (loading) return <div className="page"><Navbar /><div className="loading"><span className="spinner" /><span>Loading session...</span></div></div>;
+
+  const statusLabel = (s) => {
+    if (s === 'active')    return { label: 'Session Active',    cls: 'active' };
+    if (s === 'ended')     return { label: 'Session Ended',     cls: 'ended'  };
+    if (s === 'cancelled') return { label: 'Session Cancelled', cls: 'ended'  };
+    return { label: 'Waiting for Doctor', cls: 'waiting' };
+  };
+  const { label, cls } = statusLabel(session?.status);
+
+  return (
+    <div className="page">
+      <Navbar />
+      <div className="main-content">
+        {error && <div className="alert alert-error">⚠ {error}</div>}
+        <div className="card">
+          <p className="card-title">Appointment ID: {appointmentId}</p>
+          <div className="session-status">
+            <span className={`status-dot ${cls}`} />
+            <span>{label}</span>
+          </div>
+        </div>
+        {!meetingUrl && session?.status !== 'ended' && session?.status !== 'cancelled' && (
+          <div className="card" style={{ textAlign: 'center', padding: '32px' }}>
+            <button className="btn btn-success" onClick={handleJoin} disabled={joining}>
+              {joining ? <><span className="spinner" /> Joining...</> : '🎥 Join Consultation'}
+            </button>
+          </div>
+        )}
+        {meetingUrl && (
+          <div className="video-container">
+            <iframe src={meetingUrl} allow="camera; microphone; fullscreen; display-capture" title="Consultation Video" />
+          </div>
+        )}
+        {session?.status === 'ended' && (
+          <div className="card" style={{ textAlign: 'center' }}>
+            <p className="card-title">Consultation Completed</p>
+            <button className="btn btn-secondary" onClick={() => navigate('/patient/notifications')}>View Notifications</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default TelemedicineConsultation;
+
+
+──────────────────────────────────────────────────────
+E2. frontend/src/pages/patient/Notifications.jsx
+──────────────────────────────────────────────────────
+import { useState, useEffect } from 'react';
+import Navbar from '../../components/Navbar';
+import { useAuth } from '../../context/AuthContext';
+import { getMyNotifications } from '../../api/notificationApi';
+
+function Notifications() {
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [filter, setFilter]   = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
+
+  useEffect(() => {
+    getMyNotifications(user?.id)
+      .then((r) => setNotifications(r.data.data || []))
+      .catch(() => setError('Failed to load notifications.'))
+      .finally(() => setLoading(false));
+  }, [user]);
+
+  const filtered = notifications.filter((n) =>
+    filter === 'all' ? true : (n.type || '').toLowerCase() === filter
+  );
+
+  const timeAgo = (date) => {
+    if (!date) return '';
+    const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
+    if (mins < 1)  return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24)  return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
+
+  return (
+    <div className="page">
+      <Navbar />
+      <div className="main-content">
+        <div className="filter-bar">
+          {['all', 'email', 'sms'].map((f) => (
+            <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
+              {f === 'all' ? 'All' : f === 'email' ? '📧 Email' : '📱 SMS'}
+            </button>
+          ))}
+        </div>
+        {error && <div className="alert alert-error">⚠ {error}</div>}
+        <div className="card">
+          {loading ? (
+            <div className="loading"><span className="spinner" /><span>Loading notifications...</span></div>
+          ) : filtered.length === 0 ? (
+            <div className="empty-state"><div className="empty-icon">🔕</div><p>No notifications found.</p></div>
+          ) : (
+            filtered.map((n, i) => (
+              <div key={n._id || i} className="notif-item">
+                <div className={`notif-icon ${(n.type || 'email').toLowerCase()}`}>
+                  {n.type === 'sms' ? '📱' : '📧'}
+                </div>
+                <div className="notif-body">
+                  <p className="notif-title">{n.subject || n.message?.substring(0, 60) || 'Notification'}</p>
+                  <p className="notif-meta">{timeAgo(n.createdAt)}</p>
+                </div>
+                <span className={`badge ${n.status === 'sent' ? 'badge-green' : 'badge-red'}`}>
+                  {n.status === 'sent' ? '✓ Delivered' : '✗ Failed'}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Notifications;
+
+
+──────────────────────────────────────────────────────
+E3. frontend/src/pages/patient/AiSymptomChecker.jsx
+──────────────────────────────────────────────────────
+import { useState, useEffect } from 'react';
+import Navbar from '../../components/Navbar';
+import { useAuth } from '../../context/AuthContext';
+import { checkSymptoms, getSymptomHistory } from '../../api/aiSymptomApi';
+
+function AiSymptomChecker() {
+  const { user } = useAuth();
+  const [form, setForm]         = useState({ symptoms: '', age: '', gender: '', duration: '', notes: '' });
+  const [result, setResult]     = useState(null);
+  const [history, setHistory]   = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  useEffect(() => {
+    getSymptomHistory(user?.id)
+      .then((r) => setHistory(r.data.data || []))
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  }, [user]);
+
+  const handleChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!form.symptoms.trim() || form.symptoms.trim().length < 10) {
+      setError('Please describe your symptoms in at least 10 characters.');
+      return;
+    }
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await checkSymptoms(user?.id, form);
+      setResult(res.data.data);
+      setHistory((p) => [res.data.data, ...p]);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Analysis failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="page">
+      <Navbar />
+      <div className="main-content">
+        <div className="disclaimer">
+          <span>⚠️</span>
+          <span><strong>Medical Disclaimer:</strong> This tool provides preliminary guidance only — it is NOT a medical diagnosis.</span>
+        </div>
+        {error && <div className="alert alert-error">⚠ {error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Symptoms *</label>
+            <textarea className="form-textarea" name="symptoms" value={form.symptoms} onChange={handleChange} />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Age *</label>
+              <input className="form-input" name="age" type="number" min="1" max="120" value={form.age} onChange={handleChange} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Gender</label>
+              <select className="form-select" name="gender" value={form.gender} onChange={handleChange}>
+                <option value="">Select</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Duration</label>
+            <input className="form-input" name="duration" value={form.duration} onChange={handleChange} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Additional Notes</label>
+            <textarea className="form-textarea" name="notes" value={form.notes} onChange={handleChange} />
+          </div>
+          <button className="btn btn-primary" type="submit" disabled={loading}>
+            {loading ? 'Analysing...' : '🔍 Analyse Symptoms'}
+          </button>
+        </form>
+        {result && (
+          <div className="ai-result">
+            <p><strong>Recommended Specialty:</strong> {result.recommendedSpecialty}</p>
+            <p><strong>Risk Level:</strong> {result.riskLevel?.toUpperCase()}</p>
+            <p><strong>Assessment:</strong> {result.aiResponse}</p>
+            <p><em>{result.disclaimer}</em></p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default AiSymptomChecker;
+
+
+════════════════════════════════════════════════════════
+APPENDIX F – FRONTEND (Routing)
+════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────
+F1. frontend/src/routes/AppRoutes.jsx
+──────────────────────────────────────────────────────
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from '../components/ProtectedRoute';
+
+import AiSymptomChecker         from '../pages/patient/AiSymptomChecker';
+import TelemedicineConsultation  from '../pages/patient/TelemedicineConsultation';
+import PatientNotifications      from '../pages/patient/Notifications';
+import DoctorConsultations       from '../pages/doctor/DoctorConsultations';
+import DoctorConsultationRoom    from '../pages/doctor/DoctorConsultationRoom';
+import DoctorNotifications       from '../pages/doctor/DoctorNotifications';
+import AdminTelemedicineLogs     from '../pages/admin/AdminTelemedicineLogs';
+import AdminNotificationLogs     from '../pages/admin/AdminNotificationLogs';
+import AdminAiLogs               from '../pages/admin/AdminAiLogs';
+
+function AppRoutes() {
+  return (
+    <Router>
+      <Routes>
+        {/* Patient */}
+        <Route path="/patient/symptom-checker"
+          element={<ProtectedRoute roles={['patient']}><AiSymptomChecker /></ProtectedRoute>} />
+        <Route path="/patient/consultation/:appointmentId"
+          element={<ProtectedRoute roles={['patient']}><TelemedicineConsultation /></ProtectedRoute>} />
+        <Route path="/patient/notifications"
+          element={<ProtectedRoute roles={['patient']}><PatientNotifications /></ProtectedRoute>} />
+
+        {/* Doctor */}
+        <Route path="/doctor/consultations"
+          element={<ProtectedRoute roles={['doctor']}><DoctorConsultations /></ProtectedRoute>} />
+        <Route path="/doctor/consultation/:appointmentId"
+          element={<ProtectedRoute roles={['doctor']}><DoctorConsultationRoom /></ProtectedRoute>} />
+        <Route path="/doctor/notifications"
+          element={<ProtectedRoute roles={['doctor']}><DoctorNotifications /></ProtectedRoute>} />
+
+        {/* Admin */}
+        <Route path="/admin/telemedicine/logs"
+          element={<ProtectedRoute roles={['admin']}><AdminTelemedicineLogs /></ProtectedRoute>} />
+        <Route path="/admin/notifications/logs"
+          element={<ProtectedRoute roles={['admin']}><AdminNotificationLogs /></ProtectedRoute>} />
+        <Route path="/admin/ai/logs"
+          element={<ProtectedRoute roles={['admin']}><AdminAiLogs /></ProtectedRoute>} />
+
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default AppRoutes;
+
+
+════════════════════════════════════════════════════════
+APPENDIX G – KUBERNETES DEPLOYMENT FILES
+════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────
+G1. k8s/telemedicine-deployment.yaml
+──────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemedicine-deployment
+  labels:
+    app: telemedicine-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: telemedicine-service
+  template:
+    metadata:
+      labels:
+        app: telemedicine-service
+    spec:
+      containers:
+        - name: telemedicine-service
+          image: telemedicine-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5004
+          env:
+            - name: PORT
+              value: "5004"
+            - name: NODE_ENV
+              value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemedicine-service
+spec:
+  selector:
+    app: telemedicine-service
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 5004
+      targetPort: 5004
+      nodePort: 30004
+
+
+──────────────────────────────────────────────────────
+G2. k8s/notification-deployment.yaml
+──────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-deployment
+  labels:
+    app: notification-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: notification-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5005
+          env:
+            - name: PORT
+              value: "5005"
+            - name: NODE_ENV
+              value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+spec:
+  selector:
+    app: notification-service
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 5005
+      targetPort: 5005
+      nodePort: 30005
+
+
+──────────────────────────────────────────────────────
+G3. k8s/ai-symptom-deployment.yaml
+──────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-symptom-deployment
+  labels:
+    app: ai-symptom-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-symptom-service
+  template:
+    metadata:
+      labels:
+        app: ai-symptom-service
+    spec:
+      containers:
+        - name: ai-symptom-service
+          image: ai-symptom-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5006
+          env:
+            - name: PORT
+              value: "5006"
+            - name: NODE_ENV
+              value: "production"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-symptom-service
+spec:
+  selector:
+    app: ai-symptom-service
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 5006
+      targetPort: 5006
+      nodePort: 30006
+
+
+========================================================
+END OF APPENDIX – Sathurgini Kalanantharasan (IT23534704)
+========================================================
