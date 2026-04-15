@@ -308,6 +308,6 @@ GitHub: https://github.com/sathurgini01/SmartCareHub.git
 ## 📧 Contact
 
 For any issues or inquiries:  
-sathurgini@student.uwu.ac.lk  
+sathurgini@gmail.com
 
 ---
