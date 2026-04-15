@@ -1,4 +1,5 @@
-# MediBook - Healthcare Appointment Booking System
+# SmartCareHub
+Smart Healthcare Appointment & Telemedicine Microservices Platform
 
 > **SLIIT Distributed Systems Project - Member 3**  
 > Appointment Service + Payment Service + Booking UI
@@ -39,22 +40,23 @@ Open 3 separate terminals:
 
 ```bash
 # Terminal 1 - Appointment Service
-cd appointment-service
+cd backend/appointment-service
 npm run dev
 
 # Terminal 2 - Payment Service
-cd payment-service
+cd backend/payment-service
 npm run dev
 
 # Terminal 3 - API Gateway
-cd api-gateway
+cd backend/api-gateway
 npm run dev
 ```
 
 ### 3. Start Frontend
 ```bash
-cd client
-npm run dev
+cd frontend/patient-portal
+npm install
+npm start
 ```
 
 ### 4. Open Browser
@@ -128,10 +130,13 @@ Use the demo login buttons on the login page:
 ## 📁 Project Structure
 
 ```
-├── api-gateway/          # Entry point, proxying, auth
-├── appointment-service/  # Booking engine, doctor data
-├── payment-service/      # PayHere integration, transactions
-├── client/               # React Vite frontend
+├── backend/
+│   ├── api-gateway/          # Entry point, proxying, auth
+│   ├── appointment-service/  # Booking engine, doctor data
+│   ├── patient-service/      # Main patient service
+│   └── payment-service/      # PayHere integration, transactions
+├── frontend/
+│   └── patient-portal/       # Combined React frontend
 └── README.md
 ```
 
@@ -141,3 +146,4 @@ Each service has its own `.env` file. Key shared config:
 - `JWT_SECRET`: Must be identical across all services
 - `MONGODB_URI`: Separate database per service
 - `PAYHERE_*`: PayHere sandbox credentials
+
