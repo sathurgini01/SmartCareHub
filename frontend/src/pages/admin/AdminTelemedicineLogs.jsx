@@ -43,9 +43,16 @@ function AdminTelemedicineLogs() {
     <div className="page">
       <Navbar />
       <div className="main-content">
-        <div className="page-header">
-          <h1>🎥 Telemedicine Logs</h1>
-          <p>All video consultation session records</p>
+        <div className="page-hero">
+          <div className="page-hero-icon">🎥</div>
+          <div className="page-hero-content">
+            <h1>Telemedicine Logs</h1>
+            <p>All video consultation session records and activity overview.</p>
+            <div className="page-hero-badge">
+              <span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b',display:'inline-block'}}/>
+              Admin View
+            </div>
+          </div>
         </div>
 
         <div className="stats-grid">

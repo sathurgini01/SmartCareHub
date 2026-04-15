@@ -60,9 +60,16 @@ function AiSymptomChecker() {
     <div className="page">
       <Navbar />
       <div className="main-content">
-        <div className="page-header">
-          <h1>🧠 AI Symptom Checker</h1>
-          <p>Describe your symptoms and receive an AI-powered preliminary health assessment.</p>
+        <div className="page-hero">
+          <div className="page-hero-icon">🧠</div>
+          <div className="page-hero-content">
+            <h1>AI Symptom Checker</h1>
+            <p>Describe your symptoms and receive an AI-powered preliminary health assessment in seconds.</p>
+            <div className="page-hero-badge">
+              <span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#22c55e',display:'inline-block',boxShadow:'0 0 6px #22c55e'}}/>
+              Powered by SmartCareHub AI
+            </div>
+          </div>
         </div>
 
         <div className="disclaimer">

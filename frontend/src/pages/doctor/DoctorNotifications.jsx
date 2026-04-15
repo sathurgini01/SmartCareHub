@@ -39,9 +39,16 @@ function DoctorNotifications() {
       <Navbar />
       <div className="main-content">
         <div style={{ maxWidth: '750px', margin: '0 auto' }}>
-          <div className="page-header">
-            <h1>🔔 Notifications</h1>
-            <p>Appointment requests and consultation alerts</p>
+          <div className="page-hero">
+            <div className="page-hero-icon">🔔</div>
+            <div className="page-hero-content">
+              <h1>Notifications</h1>
+              <p>Appointment requests and consultation alerts for your patients.</p>
+              <div className="page-hero-badge">
+                <span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#60a5fa',display:'inline-block'}}/>
+                Real-time updates
+              </div>
+            </div>
           </div>
 
           <div className="filter-bar">

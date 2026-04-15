@@ -65,8 +65,12 @@ function TelemedicineConsultation() {
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/patient/notifications')}>
               ← Back
             </button>
-            <div className="page-header" style={{ marginBottom: 0 }}>
-              <h1>🎥 Video Consultation</h1>
+            <div className="page-hero" style={{ marginBottom: 0, flex: 1, padding: '18px 24px' }}>
+              <div className="page-hero-icon" style={{ fontSize: '36px' }}>🎥</div>
+              <div className="page-hero-content">
+                <h1 style={{ fontSize: '22px' }}>Video Consultation</h1>
+                <p style={{ fontSize: '13px' }}>Secure, end-to-end encrypted telemedicine session</p>
+              </div>
             </div>
           </div>
 

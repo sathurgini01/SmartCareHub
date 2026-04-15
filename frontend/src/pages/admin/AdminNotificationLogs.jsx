@@ -39,9 +39,16 @@ function AdminNotificationLogs() {
     <div className="page">
       <Navbar />
       <div className="main-content">
-        <div className="page-header">
-          <h1>📨 Notification Logs</h1>
-          <p>SMS and email delivery records across all users</p>
+        <div className="page-hero">
+          <div className="page-hero-icon">📨</div>
+          <div className="page-hero-content">
+            <h1>Notification Logs</h1>
+            <p>SMS and email delivery records across all users and channels.</p>
+            <div className="page-hero-badge">
+              <span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b',display:'inline-block'}}/>
+              Admin View
+            </div>
+          </div>
         </div>
 
         <div className="stats-grid">

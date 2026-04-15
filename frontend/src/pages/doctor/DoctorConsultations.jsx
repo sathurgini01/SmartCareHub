@@ -40,9 +40,16 @@ function DoctorConsultations() {
     <div className="page">
       <Navbar />
       <div className="main-content">
-        <div className="page-header">
-          <h1>🎥 My Consultations</h1>
-          <p>Manage and join your telemedicine sessions</p>
+        <div className="page-hero">
+          <div className="page-hero-icon">🎥</div>
+          <div className="page-hero-content">
+            <h1>My Consultations</h1>
+            <p>Manage, start, and join your telemedicine sessions with patients.</p>
+            <div className="page-hero-badge">
+              <span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#22c55e',display:'inline-block',boxShadow:'0 0 6px #22c55e'}}/>
+              Telemedicine Platform
+            </div>
+          </div>
         </div>
 
         <div className="filter-bar">

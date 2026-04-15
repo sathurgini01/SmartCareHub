@@ -38,6 +38,11 @@ function Navbar() {
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-brand">
+        <div className="brand-logo">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 10h3l2-5 4 10 2-5h5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
         Smart<span>Care</span>Hub
       </Link>
 

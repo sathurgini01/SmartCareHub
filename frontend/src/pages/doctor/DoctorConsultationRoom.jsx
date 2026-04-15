@@ -87,8 +87,12 @@ function DoctorConsultationRoom() {
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/doctor/consultations')}>
               ← Back
             </button>
-            <div className="page-header" style={{ marginBottom: 0 }}>
-              <h1>🎥 Consultation Room</h1>
+            <div className="page-hero" style={{ marginBottom: 0, flex: 1, padding: '18px 24px' }}>
+              <div className="page-hero-icon" style={{ fontSize: '36px' }}>🎥</div>
+              <div className="page-hero-content">
+                <h1 style={{ fontSize: '22px' }}>Consultation Room</h1>
+                <p style={{ fontSize: '13px' }}>Live telemedicine session — doctor view</p>
+              </div>
             </div>
           </div>
 
