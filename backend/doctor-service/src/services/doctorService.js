@@ -48,8 +48,18 @@ async function updateDoctor(id, payload, requester) {
     'password',
     'specialization',
     'licenseNumber',
-    'experience'
+    'experience',
+    'hospital',
+    'phone',
+    'bio',
+    'profileImage',
+    'title',
+    'accessKey'
   ];
+
+  if (payload.fullName !== undefined) {
+    payload.name = payload.fullName;
+  }
 
   for (const field of allowedFields) {
     if (payload[field] !== undefined) {

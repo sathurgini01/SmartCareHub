@@ -12,8 +12,26 @@ async function register(req, res, next) {
 
 async function login(req, res, next) {
   try {
-    const result = await authService.loginDoctor(req.body);
+    const result = await authService.loginUser(req.body, 'doctor');
     return sendSuccess(res, 200, 'Login successful', result);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function registerAdmin(req, res, next) {
+  try {
+    const admin = await authService.registerAdmin(req.body);
+    return sendSuccess(res, 201, 'Admin registered successfully', admin);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function loginAdmin(req, res, next) {
+  try {
+    const result = await authService.loginUser(req.body, 'admin');
+    return sendSuccess(res, 200, 'Admin login successful', result);
   } catch (error) {
     return next(error);
   }
@@ -21,5 +39,7 @@ async function login(req, res, next) {
 
 module.exports = {
   register,
-  login
+  login,
+  registerAdmin,
+  loginAdmin
 };

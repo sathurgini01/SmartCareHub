@@ -23,25 +23,64 @@ const doctorSchema = new mongoose.Schema(
     },
     specialization: {
       type: String,
-      required: [true, 'Specialization is required'],
+      required: function () {
+        return this.role !== 'admin';
+      },
       trim: true
     },
     licenseNumber: {
       type: String,
-      required: [true, 'License number is required'],
+      required: function () {
+        return this.role !== 'admin';
+      },
       unique: true,
+      sparse: true,
       trim: true,
       uppercase: true
     },
     experience: {
       type: Number,
-      required: [true, 'Experience is required'],
+      required: function () {
+        return this.role !== 'admin';
+      },
       min: 0
+    },
+    hospital: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    bio: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    profileImage: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    title: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    accessKey: {
+      type: String,
+      trim: true,
+      default: ''
     },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
-      default: 'pending'
+      default: function () {
+        return this.role === 'admin' ? 'approved' : 'pending';
+      }
     },
     role: {
       type: String,
