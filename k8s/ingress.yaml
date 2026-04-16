@@ -1,0 +1,54 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  Ingress — routes all traffic through a single entry point
+#
+#  Enable on Minikube:
+#    minikube addons enable ingress
+#
+#  Add to /etc/hosts:
+#    <minikube ip>  smartcarehub.local
+#
+#  Then access:  http://smartcarehub.local
+# ══════════════════════════════════════════════════════════════════════════════
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: smartcarehub-ingress
+  namespace: smartcarehub
+  labels:
+    app: smartcarehub
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: smartcarehub.local
+      http:
+        paths:
+          # Auth Service API
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 5001
+
+          # Patient Service API
+          - path: /api/patients
+            pathType: Prefix
+            backend:
+              service:
+                name: patient-service
+                port:
+                  number: 5002
+
+          # Frontend — catch-all
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80

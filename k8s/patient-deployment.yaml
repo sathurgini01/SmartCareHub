@@ -1,12 +1,23 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  Patient Service — Deployment
+# ══════════════════════════════════════════════════════════════════════════════
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: patient-service
+  namespace: smartcarehub
+  labels:
+    app: patient-service
 spec:
   replicas: 2
   selector:
     matchLabels:
       app: patient-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
@@ -15,6 +26,55 @@ spec:
       containers:
         - name: patient-service
           image: patient-service:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5002
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcarehub-config
+                  key: PATIENT_PORT
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcarehub-config
+                  key: NODE_ENV
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartcarehub-secrets
+                  key: JWT_SECRET
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: smartcarehub-secrets
+                  key: PATIENT_MONGO_URI
+          volumeMounts:
+            - name: uploads-storage
+              mountPath: /app/src/uploads
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu:    "100m"
+            limits:
+              memory: "256Mi"
+              cpu:    "300m"
+          livenessProbe:
+            httpGet:
+              path: /api/patients/
+              port: 5002
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/patients/
+              port: 5002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+      volumes:
+        - name: uploads-storage
+          emptyDir: {}

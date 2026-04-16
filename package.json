@@ -1,4 +1,21 @@
 {
+  "name": "smartcarehub",
+  "version": "1.0.0",
+  "description": "SmartCareHub Backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/auth-service/src/server.js",
+    "dev": "nodemon backend/auth-service/src/server.js",
+    "dev:auth": "nodemon backend/auth-service/src/server.js",
+    "dev:patient": "nodemon backend/patient-service/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
   "dependencies": {
     "express": "^5.2.1",
     "mongoose": "^9.3.3"

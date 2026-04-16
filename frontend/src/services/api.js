@@ -1,0 +1,35 @@
+import axios from 'axios';
+
+/**
+ * Relative base URL — no hardcoded host.
+ *  • Local dev  : setupProxy.js forwards /api/patients → localhost:5002
+ *  • Docker / K8s: nginx inside the frontend container proxies the same paths
+ */
+const api = axios.create({
+  baseURL: '',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Attach JWT on every request
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Auto-logout on 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;

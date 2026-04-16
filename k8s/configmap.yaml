@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smartcarehub-config
+  namespace: smartcarehub
+  labels:
+    project: smartcarehub
+data:
+  AUTH_PORT:    "5001"
+  PATIENT_PORT: "5002"
+  NODE_ENV:     "production"
