@@ -1,101 +1,96 @@
-import { createId } from '../utils/formatters';
-import { isEmail, isLicenseNumber, isStrongPassword } from '../utils/validators';
-import { clearSession, getDb, getSession, setDb, setSession, wait } from './storage';
+import { apiRequest } from '../api';
+import { clearSession, getSession, setSession, wait } from './storage';
 
-function sanitizeUser(user) {
-  const { password, ...safeUser } = user;
-  return safeUser;
+function mapUser(user) {
+  return {
+    id: user._id || user.id,
+    fullName: user.name || user.fullName || '',
+    email: user.email || '',
+    specialization: user.specialization || '',
+    licenseNumber: user.licenseNumber || '',
+    experience: user.experience ?? '',
+    hospital: user.hospital || '',
+    phone: user.phone || '',
+    bio: user.bio || '',
+    profileImage: user.profileImage || '',
+    status: user.status || '',
+    role: user.role || 'doctor',
+    submittedDate: user.createdAt || user.submittedDate || '',
+    title: user.title || '',
+    accessKey: user.accessKey || ''
+  };
 }
 
 export async function bootstrapSession() {
-  return wait(getSession());
+  const savedSession = getSession();
+
+  if (!savedSession) {
+    return wait(null);
+  }
+
+  const hasValidSession =
+    Boolean(savedSession.token) &&
+    Boolean(savedSession.role) &&
+    Boolean(savedSession.user?.id || savedSession.user?._id);
+
+  if (!hasValidSession) {
+    clearSession();
+    return wait(null);
+  }
+
+  return wait({
+    ...savedSession,
+    user: mapUser(savedSession.user)
+  });
 }
 
 export async function login({ email, password, role }) {
-  const db = getDb();
-  const collection = role === 'admin' ? db.admins : db.doctors;
-  const user = collection.find(
-    (item) => item.email.toLowerCase() === email.toLowerCase() && item.password === password
-  );
+  const path = role === 'admin' ? '/doctors/admin/login' : '/doctors/login';
+  const response = await apiRequest(path, {
+    method: 'POST',
+    body: { email, password }
+  });
 
-  if (!user) {
-    throw new Error('Invalid credentials. Please check your email and password.');
-  }
+  const session = {
+    token: response.data.token,
+    user: mapUser(response.data.doctor),
+    role
+  };
 
-  const session = { user: sanitizeUser(user), role };
   setSession(session);
-  return wait(session);
+  return session;
 }
 
 export async function registerDoctor(payload) {
-  const db = getDb();
+  const response = await apiRequest('/doctors/register', {
+    method: 'POST',
+    body: {
+      name: payload.fullName,
+      email: payload.email,
+      password: payload.password,
+      specialization: payload.specialization,
+      licenseNumber: payload.licenseNumber,
+      experience: payload.experience,
+      hospital: payload.hospital,
+      profileImage: payload.profileImage
+    }
+  });
 
-  if (!payload.fullName || !payload.email || !payload.password || !payload.specialization) {
-    throw new Error('Please complete all required doctor registration fields.');
-  }
-
-  if (!isEmail(payload.email)) {
-    throw new Error('Enter a valid email address.');
-  }
-
-  if (!isStrongPassword(payload.password)) {
-    throw new Error('Password must be at least 8 characters and include uppercase and numbers.');
-  }
-
-  if (!isLicenseNumber(payload.licenseNumber)) {
-    throw new Error('License number format is invalid.');
-  }
-
-  const exists = db.doctors.find((doctor) => doctor.email.toLowerCase() === payload.email.toLowerCase());
-  if (exists) {
-    throw new Error('A doctor account already exists with this email.');
-  }
-
-  const doctor = {
-    id: createId('doc'),
-    role: 'doctor',
-    status: 'pending',
-    submittedDate: new Date().toISOString(),
-    phone: '',
-    bio: '',
-    ...payload
-  };
-
-  db.doctors.unshift(doctor);
-  setDb(db);
-  return wait(sanitizeUser(doctor));
+  return mapUser(response.data);
 }
 
 export async function registerAdmin(payload) {
-  const db = getDb();
+  const response = await apiRequest('/doctors/admin/register', {
+    method: 'POST',
+    body: {
+      name: payload.fullName,
+      email: payload.email,
+      password: payload.password,
+      accessKey: payload.accessKey
+    }
+  });
 
-  if (payload.accessKey !== 'SMARTCARE-ADMIN') {
-    throw new Error('Admin access key is invalid.');
-  }
-
-  if (!isEmail(payload.email)) {
-    throw new Error('Enter a valid email address.');
-  }
-
-  if (!isStrongPassword(payload.password)) {
-    throw new Error('Password must be at least 8 characters and include uppercase and numbers.');
-  }
-
-  const exists = db.admins.find((admin) => admin.email.toLowerCase() === payload.email.toLowerCase());
-  if (exists) {
-    throw new Error('An admin account already exists with this email.');
-  }
-
-  const admin = {
-    id: createId('admin'),
-    role: 'admin',
-    title: 'Operations Admin',
-    ...payload
-  };
-
-  db.admins.unshift(admin);
-  setDb(db);
-  return wait(sanitizeUser(admin));
+  return mapUser(response.data);
 }
 
 export async function logout() {

@@ -1,42 +1,80 @@
-import { getDb, setDb, wait } from './storage';
+import { apiRequest } from '../api';
+import { getSession } from './storage';
+
+function getToken() {
+  return getSession()?.token || '';
+}
+
+function mapDoctor(user) {
+  return {
+    id: user._id || user.id,
+    fullName: user.name || user.fullName || '',
+    email: user.email || '',
+    specialization: user.specialization || '',
+    licenseNumber: user.licenseNumber || '',
+    experience: user.experience ?? '',
+    hospital: user.hospital || '',
+    phone: user.phone || '',
+    bio: user.bio || '',
+    profileImage: user.profileImage || '',
+    status: user.status || '',
+    role: user.role || 'doctor',
+    submittedDate: user.createdAt || user.submittedDate || '',
+    title: user.title || '',
+    accessKey: user.accessKey || ''
+  };
+}
 
 export async function getAdminDashboard() {
-  const db = getDb();
-  return wait({
-    doctors: db.doctors,
-    telemedicineSessions: db.telemedicineSessions
-  });
+  const response = await apiRequest('/admin/doctors', { token: getToken() });
+  return {
+    doctors: response.data.map(mapDoctor),
+    telemedicineSessions: []
+  };
 }
 
 export async function updateDoctorVerification(doctorId, status) {
-  const db = getDb();
-  db.doctors = db.doctors.map((doctor) => (doctor.id === doctorId ? { ...doctor, status } : doctor));
-  setDb(db);
-  return wait(true);
+  const path = status === 'approved' ? `/admin/doctors/approve/${doctorId}` : `/admin/doctors/reject/${doctorId}`;
+  await apiRequest(path, {
+    method: 'PUT',
+    token: getToken()
+  });
+  return true;
 }
 
 export async function deleteDoctorAccount(doctorId) {
-  const db = getDb();
-  db.doctors = db.doctors.filter((doctor) => doctor.id !== doctorId);
-  setDb(db);
-  return wait(true);
+  await apiRequest(`/doctors/${doctorId}`, {
+    method: 'DELETE',
+    token: getToken()
+  });
+  return true;
 }
 
 export async function getAdminProfile(adminId) {
-  const db = getDb();
-  return wait(db.admins.find((admin) => admin.id === adminId));
+  const response = await apiRequest(`/doctors/${adminId}`, {
+    token: getToken()
+  });
+  return mapDoctor(response.data);
 }
 
 export async function updateAdminProfile(adminId, updates) {
-  const db = getDb();
-  db.admins = db.admins.map((admin) => (admin.id === adminId ? { ...admin, ...updates } : admin));
-  setDb(db);
-  return wait(db.admins.find((admin) => admin.id === adminId));
+  const response = await apiRequest(`/doctors/${adminId}`, {
+    method: 'PUT',
+    token: getToken(),
+    body: {
+      fullName: updates.fullName,
+      email: updates.email,
+      title: updates.title,
+      accessKey: updates.accessKey
+    }
+  });
+  return mapDoctor(response.data);
 }
 
 export async function deleteAdminProfile(adminId) {
-  const db = getDb();
-  db.admins = db.admins.filter((admin) => admin.id !== adminId);
-  setDb(db);
-  return wait(true);
+  await apiRequest(`/doctors/${adminId}`, {
+    method: 'DELETE',
+    token: getToken()
+  });
+  return true;
 }

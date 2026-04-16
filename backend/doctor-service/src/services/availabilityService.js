@@ -22,7 +22,7 @@ async function ensureNoOverlap(doctorId, startTime, endTime, excludeId = null) {
 }
 
 async function addAvailability(payload, requester) {
-  const { doctorId, startTime, endTime, location } = payload;
+  const { doctorId, startTime, endTime, location, consultationType, status } = payload;
 
   if (!doctorId || !startTime || !endTime) {
     throw new ApiError(400, 'doctorId, startTime and endTime are required');
@@ -51,7 +51,9 @@ async function addAvailability(payload, requester) {
     doctorId,
     startTime,
     endTime,
-    location: location || 'Online'
+    location: location || 'Online',
+    consultationType: consultationType || 'Online',
+    status: status || 'Open'
   });
 }
 
@@ -93,6 +95,8 @@ async function updateAvailability(id, payload, requester) {
   if (payload.startTime) availability.startTime = payload.startTime;
   if (payload.endTime) availability.endTime = payload.endTime;
   if (payload.location !== undefined) availability.location = payload.location;
+  if (payload.consultationType !== undefined) availability.consultationType = payload.consultationType;
+  if (payload.status !== undefined) availability.status = payload.status;
 
   await availability.save();
   return availability;

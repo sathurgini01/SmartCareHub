@@ -20,7 +20,7 @@ async function updateDoctorStatus(id, status) {
 }
 
 async function getAllDoctors() {
-  return Doctor.find().select('-password').sort({ createdAt: -1 });
+  return Doctor.find({ role: 'doctor' }).select('-password').sort({ createdAt: -1 });
 }
 
 module.exports = {

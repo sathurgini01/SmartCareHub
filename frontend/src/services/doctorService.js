@@ -1,145 +1,214 @@
-import { createId } from '../utils/formatters';
-import { hasOverlap } from '../utils/validators';
-import { getDb, setDb, wait } from './storage';
+import { apiRequest } from '../api';
+import { getSession, wait } from './storage';
+
+function getAuth() {
+  const session = getSession();
+  return { session, token: session?.token || '' };
+}
+
+function mapDoctor(user) {
+  return {
+    id: user._id || user.id,
+    fullName: user.name || user.fullName || '',
+    email: user.email || '',
+    specialization: user.specialization || '',
+    licenseNumber: user.licenseNumber || '',
+    experience: user.experience ?? '',
+    hospital: user.hospital || '',
+    phone: user.phone || '',
+    bio: user.bio || '',
+    profileImage: user.profileImage || '',
+    status: user.status || '',
+    role: user.role || 'doctor',
+    submittedDate: user.createdAt || user.submittedDate || ''
+  };
+}
+
+function toIsoRange(slot) {
+  const startTime = `${slot.date}T${slot.startTime}:00`;
+  const endTime = `${slot.date}T${slot.endTime}:00`;
+  return { startTime, endTime };
+}
+
+function mapAvailability(slot) {
+  const start = new Date(slot.startTime);
+  const end = new Date(slot.endTime);
+  const date = start.toISOString().slice(0, 10);
+  const startTime = start.toISOString().slice(11, 16);
+  const endTime = end.toISOString().slice(11, 16);
+
+  return {
+    id: slot._id || slot.id,
+    doctorId: slot.doctorId?._id || slot.doctorId,
+    date,
+    startTime,
+    endTime,
+    consultationType: slot.consultationType || 'Online',
+    location: slot.location || 'Online',
+    status: slot.status || 'Open'
+  };
+}
+
+function mapAppointment(item) {
+  return {
+    id: item._id || item.id,
+    doctorId: item.doctorId?._id || item.doctorId,
+    patientId: item.patientId || '',
+    patientName: item.patientName || '',
+    appointmentDate: item.appointmentDate || (item.scheduledAt || '').slice(0, 10),
+    time: item.time || (item.scheduledAt ? new Date(item.scheduledAt).toISOString().slice(11, 16) : ''),
+    reason: item.reason || '',
+    consultationType: item.consultationType || item.mode || 'Online',
+    status: item.status || 'pending'
+  };
+}
+
+function mapPrescription(item) {
+  return {
+    id: item._id || item.id,
+    patientId: item.patientId || '',
+    patientName: item.patientName || '',
+    doctorId: item.doctorId?._id || item.doctorId,
+    date: item.date ? new Date(item.date).toISOString().slice(0, 10) : '',
+    diagnosis: item.diagnosis || '',
+    medicines: Array.isArray(item.medicines) ? item.medicines : [],
+    notes: item.notes || '',
+    followUpDate: item.followUpDate ? new Date(item.followUpDate).toISOString().slice(0, 10) : ''
+  };
+}
 
 export async function getDoctorDashboard(doctorId) {
-  const db = getDb();
-  const doctor = db.doctors.find((item) => item.id === doctorId);
-  const availability = db.availability.filter((item) => item.doctorId === doctorId);
-  const appointments = db.appointments.filter((item) => item.doctorId === doctorId);
-  const prescriptions = db.prescriptions.filter((item) => item.doctorId === doctorId);
-  const reports = db.reports.filter((item) => item.doctorId === doctorId);
-  const telemedicineSessions = db.telemedicineSessions.filter((item) => item.doctorId === doctorId);
+  const { token } = getAuth();
+  const [doctorResponse, availabilityResponse, appointmentsResponse, prescriptionsResponse] = await Promise.all([
+    apiRequest(`/doctors/${doctorId}`, { token }),
+    apiRequest(`/availability/${doctorId}`, { token }),
+    apiRequest(`/appointments/doctor/${doctorId}`, { token }),
+    apiRequest(`/prescriptions/${doctorId}`, { token })
+  ]);
 
-  return wait({
-    doctor,
-    availability,
-    appointments,
-    prescriptions,
-    reports,
-    telemedicineSessions
-  });
+  return {
+    doctor: mapDoctor(doctorResponse.data),
+    availability: availabilityResponse.data.map(mapAvailability),
+    appointments: appointmentsResponse.data.map(mapAppointment),
+    prescriptions: prescriptionsResponse.data.map(mapPrescription),
+    reports: [],
+    telemedicineSessions: []
+  };
 }
 
 export async function updateDoctorProfile(doctorId, updates) {
-  const db = getDb();
-  const index = db.doctors.findIndex((item) => item.id === doctorId);
-  db.doctors[index] = { ...db.doctors[index], ...updates };
-  setDb(db);
-  return wait(db.doctors[index]);
+  const { token } = getAuth();
+  const response = await apiRequest(`/doctors/${doctorId}`, {
+    method: 'PUT',
+    token,
+    body: {
+      fullName: updates.fullName,
+      email: updates.email,
+      specialization: updates.specialization,
+      licenseNumber: updates.licenseNumber,
+      experience: updates.experience,
+      hospital: updates.hospital,
+      phone: updates.phone,
+      bio: updates.bio,
+      profileImage: updates.profileImage
+    }
+  });
+
+  return mapDoctor(response.data);
 }
 
 export async function deleteDoctorProfile(doctorId) {
-  const db = getDb();
-  db.doctors = db.doctors.filter((item) => item.id !== doctorId);
-  db.availability = db.availability.filter((item) => item.doctorId !== doctorId);
-  db.appointments = db.appointments.filter((item) => item.doctorId !== doctorId);
-  db.prescriptions = db.prescriptions.filter((item) => item.doctorId !== doctorId);
-  db.reports = db.reports.filter((item) => item.doctorId !== doctorId);
-  db.telemedicineSessions = db.telemedicineSessions.filter((item) => item.doctorId !== doctorId);
-  setDb(db);
-  return wait(true);
+  const { token } = getAuth();
+  await apiRequest(`/doctors/${doctorId}`, {
+    method: 'DELETE',
+    token
+  });
+  return true;
 }
 
 export async function saveAvailability(doctorId, slot, editingId = null) {
-  const db = getDb();
-  const currentSlots = db.availability.filter((item) => item.doctorId === doctorId);
+  const { token } = getAuth();
+  const { startTime, endTime } = toIsoRange(slot);
+  const path = editingId ? `/availability/${editingId}` : '/availability';
+  const method = editingId ? 'PUT' : 'POST';
 
-  if (hasOverlap(slot, currentSlots, editingId)) {
-    throw new Error('This slot overlaps with an existing availability entry.');
-  }
-
-  if (editingId) {
-    db.availability = db.availability.map((item) =>
-      item.id === editingId ? { ...item, ...slot, doctorId } : item
-    );
-  } else {
-    db.availability.unshift({
-      id: createId('slot'),
+  await apiRequest(path, {
+    method,
+    token,
+    body: {
       doctorId,
-      status: 'Open',
-      ...slot
-    });
-  }
+      startTime,
+      endTime,
+      consultationType: slot.consultationType,
+      location: slot.location,
+      status: slot.status || 'Open'
+    }
+  });
 
-  setDb(db);
-  return wait(true);
+  return true;
 }
 
 export async function deleteAvailability(slotId) {
-  const db = getDb();
-  db.availability = db.availability.filter((item) => item.id !== slotId);
-  setDb(db);
-  return wait(true);
+  const { token } = getAuth();
+  await apiRequest(`/availability/${slotId}`, {
+    method: 'DELETE',
+    token
+  });
+  return true;
 }
 
 export async function updateAppointmentStatus(appointmentId, status) {
-  const db = getDb();
-  db.appointments = db.appointments.map((item) =>
-    item.id === appointmentId ? { ...item, status } : item
-  );
-  setDb(db);
-  return wait(true);
+  const { token } = getAuth();
+  await apiRequest(`/appointments/${appointmentId}/status`, {
+    method: 'PATCH',
+    token,
+    body: { status }
+  });
+  return true;
 }
 
 export async function rescheduleAppointment(appointmentId, appointmentDate, time) {
-  const db = getDb();
-  db.appointments = db.appointments.map((item) =>
-    item.id === appointmentId ? { ...item, appointmentDate, time, status: 'rescheduled' } : item
-  );
-  setDb(db);
-  return wait(true);
+  const { token } = getAuth();
+  await apiRequest(`/appointments/${appointmentId}/reschedule`, {
+    method: 'PATCH',
+    token,
+    body: { appointmentDate, time }
+  });
+  return true;
 }
 
 export async function savePrescription(doctorId, payload, editingId = null) {
-  const db = getDb();
+  const { token } = getAuth();
+  const path = editingId ? `/prescriptions/${editingId}` : '/prescriptions';
+  const method = editingId ? 'PUT' : 'POST';
 
-  if (editingId) {
-    db.prescriptions = db.prescriptions.map((item) =>
-      item.id === editingId ? { ...item, ...payload, doctorId } : item
-    );
-  } else {
-    db.prescriptions.unshift({
-      id: createId('rx'),
+  await apiRequest(path, {
+    method,
+    token,
+    body: {
+      patientId: payload.patientId,
+      patientName: payload.patientName,
       doctorId,
-      ...payload
-    });
-  }
+      date: payload.date,
+      diagnosis: payload.diagnosis,
+      medicines: payload.medicines,
+      notes: payload.notes,
+      followUpDate: payload.followUpDate || null
+    }
+  });
 
-  setDb(db);
-  return wait(true);
+  return true;
 }
 
 export async function deletePrescription(prescriptionId) {
-  const db = getDb();
-  db.prescriptions = db.prescriptions.filter((item) => item.id !== prescriptionId);
-  setDb(db);
-  return wait(true);
+  const { token } = getAuth();
+  await apiRequest(`/prescriptions/${prescriptionId}`, {
+    method: 'DELETE',
+    token
+  });
+  return true;
 }
 
-export async function saveTelemedicineSession(doctorId, action, sessionId = null) {
-  const db = getDb();
-
-  if (action === 'create') {
-    db.telemedicineSessions.unshift({
-      id: createId('tm'),
-      doctorId,
-      patientName: 'New Telemedicine Session',
-      appointmentInfo: 'Manual session launch',
-      status: 'Scheduled',
-      provider: 'Twilio-ready',
-      quickNotes: 'Session created from dashboard quick actions.'
-    });
-  }
-
-  if (action === 'join' || action === 'end') {
-    db.telemedicineSessions = db.telemedicineSessions.map((item) =>
-      item.id === sessionId
-        ? { ...item, status: action === 'join' ? 'Live' : 'Completed' }
-        : item
-    );
-  }
-
-  setDb(db);
+export async function saveTelemedicineSession() {
   return wait(true);
 }

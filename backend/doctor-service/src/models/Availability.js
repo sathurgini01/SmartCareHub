@@ -20,6 +20,16 @@ const availabilitySchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: 'Online'
+    },
+    consultationType: {
+      type: String,
+      enum: ['Online', 'Physical', 'Both'],
+      default: 'Online'
+    },
+    status: {
+      type: String,
+      trim: true,
+      default: 'Open'
     }
   },
   {

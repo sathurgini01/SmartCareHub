@@ -3,14 +3,14 @@ const ApiError = require('../utils/ApiError');
 const { isValidObjectId } = require('../validators/commonValidators');
 
 async function createPrescription(payload, requester) {
-  const { patientId, doctorId, medicines, notes, date } = payload;
+  const { patientId, patientName, doctorId, medicines, notes, date, diagnosis, followUpDate } = payload;
 
   if (requester.role !== 'doctor' && requester.role !== 'admin') {
     throw new ApiError(403, 'Only doctors or admins can create prescriptions');
   }
 
-  if (!patientId || !doctorId || !medicines) {
-    throw new ApiError(400, 'patientId, doctorId and medicines are required');
+  if (!patientId || !patientName || !doctorId || !medicines) {
+    throw new ApiError(400, 'patientId, patientName, doctorId and medicines are required');
   }
 
   if (!isValidObjectId(doctorId)) {
@@ -27,10 +27,13 @@ async function createPrescription(payload, requester) {
 
   return Prescription.create({
     patientId,
+    patientName,
     doctorId,
     medicines,
     notes,
-    date
+    date,
+    diagnosis,
+    followUpDate
   });
 }
 
@@ -48,7 +51,7 @@ async function updatePrescription(id, payload, requester) {
     throw new ApiError(403, 'You can only update your own prescriptions');
   }
 
-  ['patientId', 'notes', 'date'].forEach((field) => {
+  ['patientId', 'patientName', 'notes', 'date', 'diagnosis', 'followUpDate'].forEach((field) => {
     if (payload[field] !== undefined) {
       prescription[field] = payload[field];
     }
