@@ -6,7 +6,7 @@ import axios from 'axios';
  *  • Docker / K8s: nginx inside the frontend container proxies the same paths
  */
 const api = axios.create({
-  baseURL: '',
+  baseURL: '', // Feature branch used '/api', but HEAD uses relative paths handled by nginx/proxy
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -20,13 +20,19 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Auto-logout on 401
+// Response interceptor - handle auth errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      localStorage.removeItem('user');
+      
+      // Don't redirect if already on login-related page
+      const isLoginPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/auth');
+      if (!isLoginPage) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

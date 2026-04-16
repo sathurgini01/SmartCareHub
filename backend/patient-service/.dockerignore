@@ -8,3 +8,8 @@ README.md
 *.md
 src/uploads/*
 !src/uploads/.gitkeep
+build
+dist
+.dockerignore
+Dockerfile
+docker-compose.yml

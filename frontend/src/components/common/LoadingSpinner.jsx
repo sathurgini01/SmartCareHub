@@ -1,8 +1,10 @@
-export default function LoadingSpinner({ label = 'Loading...' }) {
+import React from 'react';
+
+export default function LoadingSpinner({ label = 'Loading...', fullScreen = false }) {
   return (
-    <div className="loading">
+    <div className={fullScreen ? "spinner-overlay" : "loading"}>
       <div className="spinner" />
-      <span>{label}</span>
+      {label && <span>{label}</span>}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { apiRequest } from '../api';
+import api from './api';
 import { getSession, wait } from './storage';
 
 function getAuth() {
@@ -212,3 +213,20 @@ export async function deletePrescription(prescriptionId) {
 export async function saveTelemedicineSession() {
   return wait(true);
 }
+
+// ── Service Object (New Features) ──────────────────────────────────────────
+export const doctorService = {
+  // Get all doctors with optional filters
+  getAll: (params = {}) => api.get('/appointments/doctors', { params }),
+  
+  // Get single doctor
+  getById: (id) => api.get(`/appointments/doctors/${id}`),
+  
+  // Get available time slots for a doctor on a date
+  getAvailability: (id, date) => api.get(`/appointments/doctors/${id}/availability`, { params: { date } }),
+  
+  // Get all specialties with counts
+  getSpecialties: () => api.get('/appointments/specialties')
+};
+
+export default doctorService;

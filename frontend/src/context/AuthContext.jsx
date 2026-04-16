@@ -1,7 +1,8 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { login as loginApi, register as registerApi, getProfile } from '../api/authApi';
+import api from '../services/api';
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -14,10 +15,13 @@ export const AuthProvider = ({ children }) => {
         try {
           const res = await getProfile();
           setUser(res.data);
-        } catch {
+          localStorage.setItem('user', JSON.stringify(res.data));
+        } catch (error) {
+          console.error('Profile fetch failed:', error);
           setUser(null);
           setToken(null);
           localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
       } else {
         setUser(null);
@@ -29,13 +33,19 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (data) => {
     const res = await loginApi(data);
-    localStorage.setItem('token', res.data.token);
-    setToken(res.data.token);
-    setUser(res.data.user);
+    const { token: newToken, user: userData } = res.data;
+    
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setToken(newToken);
+    setUser(userData);
+    
+    return { success: true, user: userData };
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   };
@@ -44,9 +54,35 @@ export const AuthProvider = ({ children }) => {
     return registerApi(data);
   };
 
+  const isAuthenticated = !!token;
+  const isAdmin = user?.role === 'admin';
+  const isDoctor = user?.role === 'doctor';
+  const isPatient = user?.role === 'patient';
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, register, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      login, 
+      logout, 
+      register, 
+      loading,
+      isAuthenticated,
+      isAdmin,
+      isDoctor,
+      isPatient
+    }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export default AuthContext;

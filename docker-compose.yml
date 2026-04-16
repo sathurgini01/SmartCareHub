@@ -1,8 +1,7 @@
 version: "3.9"
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  SmartCareHub — Docker Compose
-#  SE3020 Distributed Systems | Member 1: Patient Service + Auth + Frontend
+#  SmartCareHub — Docker Compose (Unified Deployment)
 # ══════════════════════════════════════════════════════════════════════════════
 
 networks:
@@ -13,6 +12,10 @@ volumes:
   auth-db-data:
     driver: local
   patient-db-data:
+    driver: local
+  appointment-db-data:
+    driver: local
+  payment-db-data:
     driver: local
   patient-uploads:
     driver: local
@@ -52,6 +55,46 @@ services:
       - patient-db-data:/data/db
     environment:
       MONGO_INITDB_DATABASE: patient-service
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Appointment MongoDB ──────────────────────────────────────────────────
+  appointment-db:
+    image: mongo:7.0
+    container_name: appointment-db
+    restart: unless-stopped
+    ports:
+      - "27019:27017"
+    networks:
+      - smartcare-net
+    volumes:
+      - appointment-db-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: appointment-service
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Payment MongoDB ──────────────────────────────────────────────────────
+  payment-db:
+    image: mongo:7.0
+    container_name: payment-db
+    restart: unless-stopped
+    ports:
+      - "27020:27017"
+    networks:
+      - smartcare-net
+    volumes:
+      - payment-db-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: payment-service
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -113,6 +156,78 @@ services:
       retries: 4
       start_period: 20s
 
+  # ── Appointment Service ──────────────────────────────────────────────────
+  appointment-service:
+    build:
+      context: ./backend/appointment-service
+      dockerfile: Dockerfile
+    container_name: appointment-service
+    restart: unless-stopped
+    ports:
+      - "5003:5001" # Host:5003 -> Container:5001
+    networks:
+      - smartcare-net
+    environment:
+      PORT: 5001
+      MONGODB_URI: mongodb://appointment-db:27017/appointment-service
+      JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
+    depends_on:
+      appointment-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5001/"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+
+  # ── Payment Service ──────────────────────────────────────────────────────
+  payment-service:
+    build:
+      context: ./backend/payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    restart: unless-stopped
+    ports:
+      - "5004:5002" # Host:5004 -> Container:5002
+    networks:
+      - smartcare-net
+    environment:
+      PORT: 5002
+      MONGODB_URI: mongodb://payment-db:27017/payment-service
+      JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
+    depends_on:
+      payment-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5002/"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+
+  # ── API Gateway ──────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    networks:
+      - smartcare-net
+    environment:
+      PORT: 5000
+      JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
+      APPOINTMENT_SERVICE_URL: http://appointment-service:5001
+      PAYMENT_SERVICE_URL: http://payment-service:5002
+    depends_on:
+      appointment-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+
   # ── Frontend (React + Nginx) ─────────────────────────────────────────────
   frontend:
     build:
@@ -125,6 +240,8 @@ services:
     ports:
       - "80:80"
     depends_on:
+      api-gateway:
+        condition: service_started
       auth-service:
         condition: service_healthy
       patient-service:
@@ -135,3 +252,4 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+

@@ -1,5 +1,6 @@
 node_modules
 build
+dist
 npm-debug.log*
 .env
 .env.*
@@ -7,3 +8,6 @@ npm-debug.log*
 .gitignore
 README.md
 *.md
+.dockerignore
+Dockerfile
+docker-compose.yml
