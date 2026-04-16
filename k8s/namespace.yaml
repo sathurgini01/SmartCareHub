@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: smartcarehub
+  labels:
+    project: smartcarehub
+    course: SE3020
+    member: member-1

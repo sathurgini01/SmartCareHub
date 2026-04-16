@@ -1,0 +1,18 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  Patient Service — ClusterIP Service
+# ══════════════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service
+metadata:
+  name: patient-service
+  namespace: smartcarehub
+  labels:
+    app: patient-service
+spec:
+  type: ClusterIP
+  selector:
+    app: patient-service
+  ports:
+    - name: http
+      port: 5002
+      targetPort: 5002
