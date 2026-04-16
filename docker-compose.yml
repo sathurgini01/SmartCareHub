@@ -1,0 +1,73 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - smartcare-network
+
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+    container_name: api-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:5001
+      - PAYMENT_SERVICE_URL=http://payment-service:5002
+    depends_on:
+      - appointment-service
+      - payment-service
+    networks:
+      - smartcare-network
+
+  appointment-service:
+    build:
+      context: ./backend/appointment-service
+    container_name: appointment-service
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - MONGODB_URI=mongodb://mongodb:27017/healthcareAppointments
+    depends_on:
+      - mongodb
+    networks:
+      - smartcare-network
+
+  payment-service:
+    build:
+      context: ./backend/payment-service
+    container_name: payment-service
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+      - MONGODB_URI=mongodb://mongodb:27017/healthcarePayments
+    depends_on:
+      - mongodb
+    networks:
+      - smartcare-network
+
+  frontend:
+    build:
+      context: ./frontend/patient-portal
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - smartcare-network
+
+volumes:
+  mongodb_data:
+
+
+networks:
+  smartcare-network:
+    driver: bridge

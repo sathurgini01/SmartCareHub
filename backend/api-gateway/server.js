@@ -34,6 +34,14 @@ app.get('/health', (req, res) => {
 });
 
 // ============================================================
+// Debug Logger - log every incoming request
+// ============================================================
+app.use((req, res, next) => {
+  console.log(`[GATEWAY] Incoming: ${req.method} ${req.originalUrl} from ${req.ip}`);
+  next();
+});
+
+// ============================================================
 // Proxy Routes - Forward to Microservices
 // ============================================================
 

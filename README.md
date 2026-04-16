@@ -147,3 +147,62 @@ Each service has its own `.env` file. Key shared config:
 - `MONGODB_URI`: Separate database per service
 - `PAYHERE_*`: PayHere sandbox credentials
 
+## 🐳 Docker Compose Deployment
+
+You can build and run the entire application stack using Docker Compose.
+
+### Prerequisites
+- Docker installed
+- Docker Compose installed
+
+### Start the Application
+Run the following command at the root of the project:
+```bash
+docker-compose up --build -d
+```
+*Wait a minute for the MongoDB container to initialize and backend services to connect.*
+
+- Frontend: `http://localhost:3000`
+- API Gateway: `http://localhost:5000`
+- MongoDB: `localhost:27017`
+
+### Stop the Application
+```bash
+docker-compose down
+```
+
+## ☸️ Kubernetes Deployment (Minikube)
+
+You can also deploy the application locally using Minikube.
+
+### Prerequisites
+- Minikube installed
+- kubectl installed
+
+### 1. Start Minikube
+```bash
+minikube start
+```
+
+### 2. Apply Kubernetes Manifests
+Navigate to the root directory and apply the manifests:
+```bash
+kubectl apply -f k8s/
+```
+
+### 3. Access the Services
+To access the API Gateway or Frontend, you can use Minikube's service or tunnel command:
+
+```bash
+# Get the IP and Port for the Frontend LoadBalancer
+minikube service frontend
+
+# Get the IP and Port for the API Gateway LoadBalancer
+minikube service api-gateway
+```
+
+If LoadBalancer stays in `<pending>` state, run in a separate terminal:
+```bash
+minikube tunnel
+```
+Now you can access the frontend at the external IP provided by `kubectl get svc frontend`.
