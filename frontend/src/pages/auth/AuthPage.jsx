@@ -49,6 +49,7 @@ export default function AuthPage() {
 
       if (selected.mode === 'login') {
         await loginUser({ email: form.email, password: form.password, role: selected.role });
+        navigate('/home');
       } else {
         await registerUser(selected.role, {
           fullName: form.fullName,
@@ -63,7 +64,7 @@ export default function AuthPage() {
         });
         setAlert({ type: 'success', message: `${selected.role} registration submitted successfully. Redirecting...` });
         setTimeout(() => {
-          navigate('/');
+          navigate('/home');
         }, 1500);
       }
     } catch (error) {

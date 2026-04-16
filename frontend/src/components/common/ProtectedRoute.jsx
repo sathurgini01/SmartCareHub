@@ -1,21 +1,21 @@
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import LoadingSpinner from './LoadingSpinner';
 import { useAuth } from '../../context/AuthContext';
+import LoadingSpinner from './LoadingSpinner';
 
-export default function ProtectedRoute({ children, role }) {
-  const { authLoading, user } = useAuth();
+const ProtectedRoute = ({ children, role, roles }) => {
+  const { user, token, loading } = useAuth();
+  
+  if (loading) return <LoadingSpinner label="Authenticating..." />;
+  if (!token) return <Navigate to="/login" replace />;
 
-  if (authLoading) {
-    return <LoadingSpinner label="Restoring session..." />;
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (role && user.role !== role) {
-    return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/doctor/dashboard'} replace />;
+  const allowedRoles = roles || (role ? [role] : null);
+  
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/home" replace />;
   }
 
   return children;
-}
+};
+
+export default ProtectedRoute;
