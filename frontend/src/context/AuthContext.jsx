@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 import { login as loginApi, register as registerApi, getProfile } from '../api/authApi';
-import api from '../services/api';
 
 export const AuthContext = createContext(null);
 
@@ -11,47 +11,61 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (token) {
+      const savedToken = localStorage.getItem('token');
+      if (savedToken) {
         try {
+          // Set axios default header for all subsequent requests
+          axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
           const res = await getProfile();
-          setUser(res.data);
-          localStorage.setItem('user', JSON.stringify(res.data));
+          setUser(res.data.user || res.data);
+          setToken(savedToken);
         } catch (error) {
           console.error('Profile fetch failed:', error);
-          setUser(null);
-          setToken(null);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          logout();
         }
-      } else {
-        setUser(null);
       }
       setLoading(false);
     };
     fetchProfile();
-  }, [token]);
+  }, []);
 
-  const login = async (data) => {
-    const res = await loginApi(data);
+  const login = async (arg1, arg2) => {
+    let loginData;
+    if (typeof arg1 === 'string' && typeof arg2 === 'string') {
+      loginData = { email: arg1, password: arg2 };
+    } else {
+      loginData = arg1;
+    }
+
+    const res = await loginApi(loginData);
     const { token: newToken, user: userData } = res.data;
-    
+    const finalUser = userData || res.data;
+
     localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     setToken(newToken);
-    setUser(userData);
+    setUser(finalUser);
     
-    return { success: true, user: userData };
+    return { success: true, user: finalUser };
+  };
+
+  const register = async (data) => {
+    const res = await registerApi(data);
+    if (res.data.token) {
+       const { token: newToken, user: userData } = res.data;
+       localStorage.setItem('token', newToken);
+       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+       setToken(newToken);
+       setUser(userData);
+    }
+    return { success: true, ...res.data };
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    delete axios.defaults.headers.common['Authorization'];
     setToken(null);
     setUser(null);
-  };
-
-  const register = async (data) => {
-    return registerApi(data);
   };
 
   const isAuthenticated = !!token;
@@ -70,7 +84,12 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       isAdmin,
       isDoctor,
-      isPatient
+      isPatient,
+      // Legacy compatibility
+      loginUser: login,
+      logoutUser: logout,
+      registerUser: register,
+      session: { user, token, role: user?.role }
     }}>
       {children}
     </AuthContext.Provider>

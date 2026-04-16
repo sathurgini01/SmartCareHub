@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth as usePatientAuth } from '../contexts/AuthContext';
-import { useAuth as useDoctorAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 /* ─── tiny helpers ────────────────────────────────────────────────────────── */
 const S = {
@@ -124,11 +123,18 @@ const Home = () => {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('');
 
-  const { user: patientUser } = usePatientAuth();
-  const { user: doctorUser, role: doctorRole } = useDoctorAuth();
+  const { isAuthenticated, isPatient, isAdmin, isDoctor } = useAuth();
 
-  const isLoggedIn = !!patientUser || !!doctorUser;
-  const dashboardPath = patientUser ? '/dashboard' : (doctorRole === 'admin' ? '/admin/dashboard' : '/doctor/dashboard');
+  const isLoggedIn = isAuthenticated;
+  
+  const getDashboardPath = () => {
+    if (isAdmin) return '/admin/dashboard';
+    if (isDoctor) return '/doctor/dashboard';
+    if (isPatient) return '/dashboard';
+    return '/dashboard';
+  };
+
+  const dashboardPath = getDashboardPath();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);

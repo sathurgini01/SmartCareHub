@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import Badge from '../../components/common/Badge';
 import DataTable from '../../components/common/DataTable';
 import PageBanner from '../../components/common/PageBanner';
 import ShellLayout from '../../components/common/ShellLayout';
