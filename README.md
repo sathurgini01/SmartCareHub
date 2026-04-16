@@ -5,6 +5,16 @@ Smart Healthcare Appointment & Telemedicine Microservices Platform
 
 ---
 
+## 📌 Project Overview
+SmartCareHub is a comprehensive microservices-based healthcare platform that simplifies hospital workflows and patient-doctor interactions.
+
+**Key Features (Added in this version):**
+- **Telemedicine Service**: Real-time video consultations and appointment management.
+- **Notification Service**: Automated SMS and Email alerts for appointments and payments.
+- **AI Symptom Service**: Intelligent symptom analysis using Google Gemini & Groq APIs.
+
+---
+
 ## 🏗️ Architecture Overview
 
 The system follows a microservices architecture using the MERN stack (MongoDB, Express, React, Node.js), orchestrated with Docker and Kubernetes.
@@ -24,15 +34,14 @@ The system follows a microservices architecture using the MERN stack (MongoDB, E
     ┌──────▼──────┐┌─────▼──────┐┌───▼───┐┌──────▼──────┐┌─────▼──────┐
     │Auth Service ││Patient Svc ││Doctor ││Appointment  ││Payment Svc │
     │ Port 5001   ││ Port 5002  ││ Service││ Port 5003   ││ Port 5004  │
-    └──────┬──────┘└─────┬──────┘└───┬───┘└──────┬──────┘└─────┬──────┘
+    └─────────────┘└────────────┘└───────┘└─────────────┘└─────────────┘
            │             │           │           │             │
     ┌──────▼──────┐┌─────▼──────┐┌───▼───┐┌──────▼──────┐┌─────▼──────┐
-    │   auth-db   ││ patient-db ││doctor ││appointment- ││ payment-db │
-    │ (MongoDB)   ││ (MongoDB)  ││  db   ││    db       ││ (MongoDB)  │
-    └─────────────┘└────────────┘└───────┘└─────────────┘└────────────┘
+    │Telemedicine ││Notification ││   AI    ││             ││             │
+    │  Port 5004  ││  Port 5005  ││ Symptom ││             ││             │
+    │             ││             ││ Port 5006││             ││             │
+    └─────────────┘└─────────────┘└─────────┘└─────────────┘└─────────────┘
 ```
-
-All services communicate over a shared Docker bridge network (`smartcare-net`).
 
 ---
 
@@ -41,15 +50,16 @@ All services communicate over a shared Docker bridge network (`smartcare-net`).
 ### 1. Patient Portal Services
 *   **Auth Service (Port 5001)**: Registration, login, and JWT-based authentication for all roles.
 *   **Patient Service (Port 5002)**: Profile management, medical report uploads (Multer), and prescription history.
-*   **Frontend (Port 80)**: Unified React application serving distinct dashboards for Patients, Doctors, and Admins.
+*   **AI Symptom Service (Port 5006)**: Analyzes user symptoms and recommends medical specialists.
 
-### 2. Appointment & Payment Flow (Member 3)
+### 2. Appointment & Payment Flow
 *   **Appointment Service (Port 5003)**: Doctor browsing, real-time slot checking, and booking management.
 *   **Payment Service (Port 5004)**: PayHere sandbox integration, transaction audit logs, and refund processing.
-*   **API Gateway (Port 5000)**: Entry point for the appointment/payment flow with JWT verification and rate limiting.
+*   **Telemedicine Service (Port 5004 - Shared)**: Secure video consultations via browser.
 
-### 3. Doctor Management (Member 2)
-*   **Doctor Service (Port 5002 - Shared/Integrated)**: Handles verification, profile approval workflow, availability scheduling, and prescription issuance.
+### 3. Notification & Admin
+*   **Notification Service (Port 5005)**: Integrated Twilio (SMS) and Nodemailer (Email) for real-time alerting.
+*   **Doctor Management (Member 2)**: Handles verification, profile approval workflow, availability scheduling, and prescription issuance.
 
 ---
 
@@ -57,14 +67,13 @@ All services communicate over a shared Docker bridge network (`smartcare-net`).
 
 ### Prerequisites
 - [Docker](https://www.docker.com/) & Docker Compose v2
-- Node.js 18+ (for local development)
-- MongoDB running locally (if not using Docker)
+- Node.js 18+
+- MongoDB (Local or Atlas)
+- Twilio & AI (Gemini/Groq) API Keys
 
 ### Running with Docker Compose
-Run the following command at the root of the project:
-
 ```bash
-# Build and start all services in the background
+# Start all microservices
 docker compose up --build -d
 ```
 
@@ -72,19 +81,14 @@ docker compose up --build -d
 - **Web App**: http://localhost
 - **API Gateway**: http://localhost:5000
 
-### Local Development (Manual)
-Each service can be run independently using `npm run dev` in its respective directory.
-
 ---
 
-## 🧪 Testing
+## 🔑 Environment Variables
 
-### Test Cards (PayHere Sandbox)
-| Card Type | Number |
-|-----------|--------|
-| Visa | 4916 2175 0161 1292 |
-| MasterCard | 5307 7321 2553 1191 |
-| AMEX | 3467 8100 5510 225 |
+Each backend service required a `.env` file. Key variables include:
+- `JWT_SECRET`: Shared secret for authentication.
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`: For Notifications.
+- `GEMINI_API_KEY`, `GROQ_API_KEY`: For AI Symptom Checker.
 
 ---
 
@@ -93,40 +97,22 @@ Each service can be run independently using `npm run dev` in its respective dire
 ```
 SmartCareHub/
 ├── backend/
-│   ├── api-gateway/          # Auth proxy & Rate limiting
-│   ├── appointment-service/  # Booking engine
-│   ├── auth-service/         # JWT Auth & User management
-│   ├── doctor-service/       # Doctor profiles & availability
-│   ├── patient-service/      # Patient records & reports
-│   └── payment-service/      # PayHere integration
+│   ├── ai-symptom-service/   # AI engine
+│   ├── api-gateway/          # Auth proxy
+│   ├── appointment-service/  # Booking service
+│   ├── auth-service/         # Identity management
+│   ├── doctor-service/       # Doctor profiles
+│   ├── notification-service/ # Alerts (SMS/Email)
+│   ├── patient-service/      # Patient records
+│   ├── payment-service/      # Transaction processing
+│   └── telemedicine-service/  # Video consultation engine
 ├── frontend/
-│   ├── public/               # Static assets
 │   ├── src/
-│   │   ├── components/       # Shared UI components
-│   │   ├── context/          # Unified Auth providers
-│   │   ├── pages/            # Role-based dashboards
+│   │   ├── components/       # Unified UI
+│   │   ├── pages/            # Role-based dashboards (Patient/Doctor/Admin)
 │   │   └── services/         # API clients
 │   └── Dockerfile
 ├── k8s/                       # Kubernetes manifests
 ├── docker-compose.yml
 └── README.md
 ```
-
----
-
-## ☸️ Kubernetes Deployment
-
-Manifests are located in the `k8s/` directory.
-
-```bash
-# Apply namespaces and all resources
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/
-```
-
-| Service | Port |
-|---------|------|
-| Frontend | 80 |
-| API Gateway | 5000 |
-| Backend Services | 5001 - 5004 |
-

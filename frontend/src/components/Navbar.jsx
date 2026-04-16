@@ -1,30 +1,90 @@
-import React, { useContext } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import React from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const Navbar = () => {
-	const { user, token, logout } = useContext(AuthContext);
-	const location = useLocation();
-	return (
-		<header className="navbar card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
-			<div className="navbar-brand" style={{ fontWeight: 'bold', color: '#fff' }}>
-				SmartCareHub Patient Portal
-			</div>
-			<div className="navbar-user" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-				{token && user ? (
-					<>
-						<span style={{ color: '#fff' }}>Welcome, {user.name || 'Patient'}</span>
-						<button className="btn btn-secondary" onClick={logout}>Logout</button>
-					</>
-				) : (
-					<>
-						{location.pathname !== '/login' && <Link className="btn btn-secondary" to="/login">Login</Link>}
-						{location.pathname !== '/register' && <Link className="btn btn-primary" to="/register">Register</Link>}
-					</>
-				)}
-			</div>
-		</header>
-	);
-};
+function Navbar() {
+  const { user, token, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const isActive = (path) => location.pathname === path ? 'nav-link active' : 'nav-link';
+
+  const patientCoreLinks = [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/appointments', label: 'Book Appointment' },
+    { to: '/patient/symptom-checker', label: 'AI Symptom Checker' },
+    { to: '/patient/notifications', label: 'Notifications' },
+  ];
+
+  const doctorCoreLinks = [
+    { to: '/doctor/dashboard', label: 'Dashboard' },
+    { to: '/doctor/appointments', label: 'Doctor Appointments' },
+    { to: '/doctor/notifications', label: 'Doctor Notifications' },
+  ];
+
+  const adminCoreLinks = [
+    { to: '/admin/dashboard', label: 'Admin Dashboard' },
+    { to: '/admin/telemedicine/logs', label: 'Telemedicine Logs' },
+    { to: '/admin/notifications/logs', label: 'Notification Logs' },
+    { to: '/admin/ai/logs', label: 'AI Logs' },
+  ];
+
+  const getLinks = () => {
+    if (!token || !user) return [];
+    if (user.role === 'doctor') return doctorCoreLinks;
+    if (user.role === 'admin') return adminCoreLinks;
+    return patientCoreLinks;
+  };
+
+  const links = getLinks();
+
+  return (
+    <nav className="navbar">
+      <Link to="/" className="navbar-brand">
+        <div className="brand-logo">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 10h3l2-5 4 10 2-5h5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        Smart<span>Care</span>Hub
+      </Link>
+
+      <div className="navbar-links">
+        {token && links.map((l) => (
+          <Link key={l.to} to={l.to} className={isActive(l.to)}>
+            {l.label}
+          </Link>
+        ))}
+        {!token && (
+           <>
+             <Link to="/login" className={isActive('/login')}>Login</Link>
+             <Link to="/register" className={isActive('/register')}>Register</Link>
+           </>
+        )}
+      </div>
+
+      <div className="nav-user">
+        {token && user && (
+          <>
+            <span className="nav-role-badge">{user.role}</span>
+            <span className="welcome-text" style={{ marginRight: '1rem', color: '#888' }}>
+              {user.name || user.email}
+            </span>
+            <button className="btn-logout" onClick={handleLogout}>
+              Sign Out
+            </button>
+          </>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+export default Navbar;
 
 export default Navbar;
