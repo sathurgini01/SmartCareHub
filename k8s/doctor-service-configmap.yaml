@@ -1,0 +1,8 @@
+﻿apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: doctor-service-config
+data:
+  NODE_ENV: "production"
+  PORT: "5002"
+  APPOINTMENT_SERVICE_MODE: "mock"

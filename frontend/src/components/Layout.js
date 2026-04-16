@@ -158,6 +158,19 @@ const Layout = ({ children }) => {
               {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
 
+            {/* Home button */}
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: '#1e293b', border: '1px solid #334155',
+                borderRadius: '10px', width: '38px', height: '38px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8',
+                flexShrink: 0,
+              }}
+              title="Go to Home"
+            >🏠</button>
+
             {/* Notification bell (decorative) */}
             <button style={{
               background: '#1e293b', border: '1px solid #334155',

@@ -1,0 +1,28 @@
+﻿version: '3.9'
+
+services:
+  doctor-service:
+    build: .
+    container_name: doctor-service
+    ports:
+      - "5002:5002"
+    environment:
+      - NODE_ENV=production
+      - PORT=5002
+      - MONGO_URI=mongodb://doctor-mongo:27017/doctor_service_db
+      - JWT_SECRET=change_this_super_secret_key
+      - JWT_EXPIRES_IN=1d
+      - APPOINTMENT_SERVICE_MODE=mock
+    depends_on:
+      - doctor-mongo
+
+  doctor-mongo:
+    image: mongo:7
+    container_name: doctor-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - doctor_mongo_data:/data/db
+
+volumes:
+  doctor_mongo_data:

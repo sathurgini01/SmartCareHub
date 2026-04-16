@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth as usePatientAuth } from '../contexts/AuthContext';
+import { useAuth as useDoctorAuth } from '../context/AuthContext';
 
 /* ─── tiny helpers ────────────────────────────────────────────────────────── */
 const S = {
@@ -122,6 +124,12 @@ const Home = () => {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('');
 
+  const { user: patientUser } = usePatientAuth();
+  const { user: doctorUser, role: doctorRole } = useDoctorAuth();
+
+  const isLoggedIn = !!patientUser || !!doctorUser;
+  const dashboardPath = patientUser ? '/dashboard' : (doctorRole === 'admin' ? '/admin/dashboard' : '/doctor/dashboard');
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
@@ -164,7 +172,14 @@ const Home = () => {
               {label}
             </button>
           ))}
-          <Link to="/login" style={S.loginBtn}>Sign In</Link>
+          {isLoggedIn ? (
+            <Link to={dashboardPath} style={S.loginBtn}>My Dashboard</Link>
+          ) : (
+            <>
+              <Link to="/login" style={{...S.loginBtn, background: 'linear-gradient(135deg,#64748b,#475569)'}}>Patient Login</Link>
+              <Link to="/auth" style={S.loginBtn}>Portal Login</Link>
+            </>
+          )}
         </div>
       </nav>
 
