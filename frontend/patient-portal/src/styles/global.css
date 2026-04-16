@@ -1,0 +1,130 @@
+:root {
+  --bg-dark: #0f172a;
+  --card: #1e293b;
+  --accent-red: #dc2626;
+  --text-light: #fff;
+}
+
+body {
+  background: var(--bg-dark);
+  color: var(--text-light);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  padding: 1.5rem;
+}
+
+.btn {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0.2rem;
+}
+.btn-primary {
+  background: var(--accent-red);
+  color: #fff;
+}
+.btn-secondary {
+  background: #334155;
+  color: #fff;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #fff;
+}
+.form-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #fff;
+}
+
+.stats-grid {
+  display: grid;
+  gap: 1rem;
+}
+.stat-card {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #fff;
+}
+
+.badge-green {
+  background: #22c55e;
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.9em;
+}
+.badge-red {
+  background: #dc2626;
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.9em;
+}
+.badge-yellow {
+  background: #facc15;
+  color: #222;
+  border-radius: 6px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.9em;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.alert-error {
+  background: #dc2626;
+  color: #fff;
+  padding: 0.7rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+.alert-success {
+  background: #22c55e;
+  color: #fff;
+  padding: 0.7rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.spinner {
+  border: 4px solid #334155;
+  border-top: 4px solid var(--accent-red);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation: spin 1s linear infinite;
+  margin: auto;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.centered-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark);
+}

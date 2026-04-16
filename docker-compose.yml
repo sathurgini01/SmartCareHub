@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+
+  auth-db:
+    image: mongo
+    container_name: auth-db
+    ports:
+      - "27017:27017"
+
+  patient-db:
+    image: mongo
+    container_name: patient-db
+    ports:
+      - "27018:27017"
+
+  auth-service:
+    build: ./backend/auth-service
+    container_name: auth-service
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - MONGO_URI=mongodb://auth-db:27017/auth-service
+      - JWT_SECRET=supersecret
+    depends_on:
+      - auth-db
+
+  patient-service:
+    build: ./backend/patient-service
+    container_name: patient-service
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+      - MONGO_URI=mongodb://patient-db:27017/patient-service
+      - JWT_SECRET=supersecret
+    depends_on:
+      - patient-db
