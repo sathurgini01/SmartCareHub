@@ -8,6 +8,6 @@ Use the root README for:
 
 - local setup
 - Docker build and compose commands
-- Kubernetes deployment steps
+- Kubernetes deployment steps from the root `k8s/` folder
 - health check steps
 - doctor-service endpoint summary

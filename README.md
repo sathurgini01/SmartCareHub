@@ -179,7 +179,7 @@ docker build -t doctor-service:latest .\backend\doctor-service
 ### Step 3 - Apply Kubernetes Manifests
 
 ```powershell
-kubectl apply -f backend\k8s\
+kubectl apply -f k8s\
 ```
 
 This deploys:
