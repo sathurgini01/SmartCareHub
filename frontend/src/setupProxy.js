@@ -18,4 +18,60 @@ module.exports = function (app) {
       changeOrigin: true,
     })
   );
+
+  app.use(
+    createProxyMiddleware('/api/doctors', {
+      target: 'http://localhost:5010',
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/availability', {
+      target: 'http://localhost:5010',
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/prescriptions', {
+      target: 'http://localhost:5010',
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/appointments', {
+      target: 'http://localhost:5003',
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/payments', {
+      target: 'http://localhost:5011',
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/telemedicine', {
+      target: 'http://localhost:5004',
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/notifications', {
+      target: 'http://localhost:5005',
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/ai-symptom', {
+      target: 'http://localhost:5006',
+      changeOrigin: true,
+    })
+  );
 };

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { login as loginApi, register as registerApi, getProfile } from '../api/authApi';
 
@@ -9,16 +9,46 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
+  const normalizeUser = (userData) => {
+    if (!userData) return null;
+    const user = { ...userData };
+    if (!user.id && user.userId) user.id = user.userId;
+    if (!user.id && user._id) user.id = user._id;
+    if (!user.fullName && user.name) user.fullName = user.name;
+    return user;
+  };
+
+  const updateSession = (newToken, userData) => {
+    if (newToken) {
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('smartcare-platform-session', JSON.stringify({ token: newToken, user: userData }));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      setToken(newToken);
+    } else {
+      localStorage.removeItem('token');
+      localStorage.removeItem('smartcare-platform-session');
+      delete axios.defaults.headers.common['Authorization'];
+      setToken(null);
+    }
+  };
+
+  const logout = useCallback(() => {
+    updateSession(null);
+    setUser(null);
+  }, []);
+
   useEffect(() => {
     const fetchProfile = async () => {
       const savedToken = localStorage.getItem('token');
       if (savedToken) {
         try {
-          // Set axios default header for all subsequent requests
           axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
           const res = await getProfile();
-          setUser(res.data.user || res.data);
+          const userData = normalizeUser(res.data.user || res.data);
+          setUser(userData);
           setToken(savedToken);
+          // Sync session
+          localStorage.setItem('smartcare-platform-session', JSON.stringify({ token: savedToken, user: userData }));
         } catch (error) {
           console.error('Profile fetch failed:', error);
           logout();
@@ -27,51 +57,54 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
     fetchProfile();
-  }, []);
+  }, [logout]);
 
-  const login = async (arg1, arg2) => {
+  const login = useCallback(async (arg1, arg2, arg3) => {
     let loginData;
     if (typeof arg1 === 'string' && typeof arg2 === 'string') {
       loginData = { email: arg1, password: arg2 };
+      if (arg3) loginData.role = arg3;
+      else if (typeof arg3 === 'object') Object.assign(loginData, arg3);
     } else {
       loginData = arg1;
     }
-
-    const res = await loginApi(loginData);
-    const { token: newToken, user: userData } = res.data;
-    const finalUser = userData || res.data;
-
-    localStorage.setItem('token', newToken);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-    setToken(newToken);
-    setUser(finalUser);
     
-    return { success: true, user: finalUser };
-  };
+    const res = await loginApi(loginData);
+    const newToken = res.data.token;
+    const userData = normalizeUser(res.data.user || res.data);
+    
+    if (userData) delete userData.token;
 
-  const register = async (data) => {
-    const res = await registerApi(data);
-    if (res.data.token) {
-       const { token: newToken, user: userData } = res.data;
-       localStorage.setItem('token', newToken);
-       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-       setToken(newToken);
+    updateSession(newToken, userData);
+    setUser(userData);
+    
+    return { success: true, user: userData };
+  }, []);
+
+  const register = useCallback(async (arg1, arg2) => {
+    let registerData;
+    if (typeof arg1 === 'string' && typeof arg2 === 'object') {
+       registerData = { ...arg2, role: arg1 };
+    } else {
+       registerData = arg1;
+    }
+
+    const res = await registerApi(registerData);
+    if (res.data && res.data.token) {
+       const newToken = res.data.token;
+       const userData = normalizeUser(res.data.user || res.data);
+       if (userData) delete userData.token;
+
+       updateSession(newToken, userData);
        setUser(userData);
     }
     return { success: true, ...res.data };
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
-    setToken(null);
-    setUser(null);
-  };
+  }, []);
 
   const isAuthenticated = !!token;
-  const isAdmin = user?.role === 'admin';
-  const isDoctor = user?.role === 'doctor';
-  const isPatient = user?.role === 'patient';
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
+  const isDoctor = user?.role?.toLowerCase() === 'doctor';
+  const isPatient = user?.role?.toLowerCase() === 'patient';
 
   return (
     <AuthContext.Provider value={{ 

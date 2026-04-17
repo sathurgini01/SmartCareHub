@@ -60,7 +60,7 @@ const Register = () => {
         password: form.password,
       });
       if (result.success) {
-        navigate('/dashboard');
+        navigate('/home');
       } else {
         setServerError(result.error || 'Registration failed. Please try again.');
       }

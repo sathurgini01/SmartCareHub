@@ -41,6 +41,14 @@ import PrescriptionsPage from '../pages/doctor/PrescriptionsPage';
 import ReportsPage from '../pages/doctor/ReportsPage';
 import TelemedicinePage from '../pages/doctor/TelemedicinePage';
 import AppointmentsPage from '../pages/doctor/AppointmentsPage';
+import { useAuth } from '../context/AuthContext';
+
+const DashboardRedirect = () => {
+  const { isDoctor, isAdmin } = useAuth();
+  if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
+  if (isDoctor) return <Navigate to="/doctor/dashboard" replace />;
+  return <Layout><Dashboard /></Layout>;
+};
 
 export default function AppRoutes() {
   return (
@@ -53,7 +61,7 @@ export default function AppRoutes() {
       <Route path="/auth" element={<AuthPage />} />
 
       {/* ====== Patient Core Protected Routes (Member 1) ====== */}
-      <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
       <Route path="/profile" element={<Layout><Profile /></Layout>} />
       <Route path="/prescriptions" element={<Layout><Prescriptions /></Layout>} />
       <Route path="/appointments" element={<Layout><Appointments /></Layout>} />
