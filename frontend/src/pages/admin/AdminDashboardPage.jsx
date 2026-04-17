@@ -25,6 +25,24 @@ export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
 
+  const adminTools = [
+    {
+      title: 'AI Logs',
+      text: 'Inspect symptom analysis activity and admin-facing AI events.',
+      route: '/admin/ai/logs'
+    },
+    {
+      title: 'Notification Logs',
+      text: 'Review outbound notification traffic and delivery records.',
+      route: '/admin/notifications/logs'
+    },
+    {
+      title: 'Telemedicine Logs',
+      text: 'Monitor telemedicine session activity and audit records.',
+      route: '/admin/telemedicine/logs'
+    }
+  ];
+
   const loadData = useCallback(async () => {
     const nextData = await getAdminDashboard();
     setDoctors(nextData.doctors);
@@ -73,6 +91,26 @@ export default function AdminDashboardPage() {
         <CountCard status="rejected" count={counts.rejected} />
         <CountCard status="approved" count={counts.approved} />
       </div>
+
+      <section className="card compact-card">
+        <div className="section-heading">
+          <h2>Admin Monitoring Tools</h2>
+          <p>Open the platform activity pages directly from the admin dashboard.</p>
+        </div>
+        <div className="services-grid services-grid-compact">
+          {adminTools.map((item) => (
+            <button
+              key={item.title}
+              className="service-card service-card-reports"
+              onClick={() => navigate(item.route)}
+            >
+              <span className="service-icon service-emoji" aria-hidden="true">📊</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </button>
+          ))}
+        </div>
+      </section>
     </ShellLayout>
   );
 }

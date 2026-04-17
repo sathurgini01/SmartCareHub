@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { clearSession, getAccessToken } from '../services/storage';
 
 const createInstance = (baseURL) => {
   const instance = axios.create({ baseURL });
   instance.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
+    const token = getAccessToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   });
@@ -11,7 +12,7 @@ const createInstance = (baseURL) => {
     (res) => res,
     (err) => {
       if (err.response?.status === 401) {
-        localStorage.removeItem('token');
+        clearSession();
         window.location.href = '/login';
       }
       return Promise.reject(err);

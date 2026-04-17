@@ -1,4 +1,5 @@
 ﻿const Doctor = require('../models/Doctor');
+const Availability = require('../models/Availability');
 const ApiError = require('../utils/ApiError');
 const {
   isValidObjectId,
@@ -181,9 +182,82 @@ async function deleteDoctor(id, requester) {
   await doctor.deleteOne();
 }
 
+function mapDoctorAvailability(slots) {
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const grouped = new Map();
+
+  for (const slot of slots) {
+    const start = new Date(slot.startTime);
+    const end = new Date(slot.endTime);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      continue;
+    }
+
+    const day = dayNames[start.getDay()];
+    const startLabel = start.toISOString().slice(11, 16);
+    const endLabel = end.toISOString().slice(11, 16);
+    const existing = grouped.get(day);
+
+    if (!existing) {
+      grouped.set(day, {
+        day,
+        startTime: startLabel,
+        endTime: endLabel,
+        consultationType: slot.consultationType || 'Online',
+        location: slot.location || 'Online'
+      });
+      continue;
+    }
+
+    if (startLabel < existing.startTime) {
+      existing.startTime = startLabel;
+    }
+
+    if (endLabel > existing.endTime) {
+      existing.endTime = endLabel;
+    }
+  }
+
+  return Array.from(grouped.values());
+}
+
+async function attachAvailability(doctor) {
+  const availability = await Availability.find({ doctorId: doctor._id }).sort({ startTime: 1 });
+  const safeDoctor = doctor.toObject ? doctor.toObject() : doctor;
+
+  return {
+    ...safeDoctor,
+    availability: mapDoctorAvailability(availability)
+  };
+}
+
+async function listPublicDoctors() {
+  const doctors = await Doctor.find({ role: 'doctor' }).select('-password').sort({ createdAt: -1 });
+
+  return Promise.all(
+    doctors.map(async (doctor) => attachAvailability(doctor))
+  );
+}
+
+async function getPublicDoctorById(id) {
+  if (!isValidObjectId(id)) {
+    throw new ApiError(400, 'Invalid doctor id');
+  }
+
+  const doctor = await Doctor.findOne({ _id: id, role: 'doctor' }).select('-password');
+  if (!doctor) {
+    throw new ApiError(404, 'Doctor not found');
+  }
+
+  return attachAvailability(doctor);
+}
+
 module.exports = {
   getDoctorByRequester,
   getDoctorById,
   updateDoctor,
-  deleteDoctor
+  deleteDoctor,
+  listPublicDoctors,
+  getPublicDoctorById
 };

@@ -37,6 +37,20 @@ const serviceCards = [
     route: '/doctor/availability',
     icon: '👤',
     accent: 'availability'
+  },
+  {
+    title: 'Consultations',
+    text: 'Review active and upcoming consultation sessions',
+    route: '/doctor/consultations',
+    icon: '🩺',
+    accent: 'appointments'
+  },
+  {
+    title: 'Notifications',
+    text: 'Track patient and system notification updates',
+    route: '/doctor/notifications',
+    icon: '🔔',
+    accent: 'reports'
   }
 ];
 
@@ -83,6 +97,10 @@ export default function DoctorDashboardPage() {
     return <LoadingSpinner label="Loading doctor dashboard..." />;
   }
 
+  const consultationTarget = data.appointments.find(
+    (item) => item.status === 'confirmed' || item.status === 'pending'
+  );
+
   return (
     <ShellLayout>
       {message ? <div className="alert-success">{message}</div> : null}
@@ -118,6 +136,25 @@ export default function DoctorDashboardPage() {
               <p>{item.text}</p>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="card compact-card">
+        <div className="section-heading">
+          <h2>Consultation Room</h2>
+          <p>Jump straight into a live room when a consultation-ready appointment is available.</p>
+        </div>
+        <div className="table-action-row">
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate(`/doctor/consultation/${consultationTarget.id}`)}
+            disabled={!consultationTarget}
+          >
+            Open Consultation Room
+          </button>
+          {!consultationTarget ? (
+            <span className="table-helper-text">No consultation-ready appointment found yet.</span>
+          ) : null}
         </div>
       </section>
 

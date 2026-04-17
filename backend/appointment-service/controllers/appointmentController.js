@@ -1,6 +1,7 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
 const { checkDoubleBooking, validateDoctorAvailability, getAvailableSlots, validateAdvanceBooking } = require('../utils/slotValidator');
+const { syncDoctorDirectory, syncDoctorByReference, syncDoctorByEmail } = require('../services/doctorDirectoryService');
 
 // ============================================================
 // DOCTOR ENDPOINTS (public - for browsing)
@@ -12,8 +13,12 @@ const { checkDoubleBooking, validateDoctorAvailability, getAvailableSlots, valid
 const getDoctors = async (req, res) => {
   try {
     const { specialty, search, sortBy, order, page = 1, limit = 10 } = req.query;
+    await syncDoctorDirectory();
     
-    let query = { isAvailable: true };
+    const doctorServiceCount = await Doctor.countDocuments({ source: 'doctor-service', isAvailable: true });
+    let query = doctorServiceCount > 0
+      ? { source: 'doctor-service', isAvailable: true }
+      : { isAvailable: true };
 
     if (specialty) {
       query.specialty = specialty;
@@ -65,7 +70,11 @@ const getDoctors = async (req, res) => {
 // @access  Public
 const getDoctorById = async (req, res) => {
   try {
-    const doctor = await Doctor.findById(req.params.id);
+    let doctor = await Doctor.findById(req.params.id);
+
+    if (!doctor) {
+      doctor = await syncDoctorByReference(req.params.id);
+    }
     
     if (!doctor) {
       return res.status(404).json({ success: false, message: 'Doctor not found' });
@@ -89,12 +98,17 @@ const getDoctorAvailability = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Date query parameter is required' });
     }
 
-    const slots = await getAvailableSlots(req.params.id, date);
+    const localDoctor = await syncDoctorByReference(req.params.id);
+    if (!localDoctor) {
+      return res.status(404).json({ success: false, message: 'Doctor not found' });
+    }
+
+    const slots = await getAvailableSlots(localDoctor._id, date);
 
     res.json({ 
       success: true, 
       data: { 
-        doctorId: req.params.id, 
+        doctorId: localDoctor._id, 
         date, 
         slots 
       } 
@@ -110,11 +124,15 @@ const getDoctorAvailability = async (req, res) => {
 // @access  Public
 const getSpecialties = async (req, res) => {
   try {
-    const specialties = await Doctor.distinct('specialty', { isAvailable: true });
+    const doctorServiceCount = await Doctor.countDocuments({ source: 'doctor-service', isAvailable: true });
+    const baseMatch = doctorServiceCount > 0
+      ? { source: 'doctor-service', isAvailable: true }
+      : { isAvailable: true };
+    const specialties = await Doctor.distinct('specialty', baseMatch);
     
     // Get count per specialty
     const specialtyCounts = await Doctor.aggregate([
-      { $match: { isAvailable: true } },
+      { $match: baseMatch },
       { $group: { _id: '$specialty', count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
     ]);
@@ -139,9 +157,14 @@ const getSpecialties = async (req, res) => {
 const createAppointment = async (req, res) => {
   try {
     const { doctorId, appointmentDate, timeSlot, reason, notes, patientName, patientEmail, patientPhone } = req.body;
+    const localDoctor = await syncDoctorByReference(doctorId);
+
+    if (!localDoctor) {
+      return res.status(404).json({ success: false, message: 'Doctor not found' });
+    }
 
     // Validate doctor availability
-    const availabilityCheck = await validateDoctorAvailability(doctorId, appointmentDate, timeSlot);
+    const availabilityCheck = await validateDoctorAvailability(localDoctor._id, appointmentDate, timeSlot);
     if (!availabilityCheck.isValid) {
       return res.status(400).json({ success: false, message: availabilityCheck.message });
     }
@@ -153,7 +176,7 @@ const createAppointment = async (req, res) => {
     }
 
     // Check for double booking
-    const doubleBookCheck = await checkDoubleBooking(doctorId, appointmentDate, timeSlot);
+    const doubleBookCheck = await checkDoubleBooking(localDoctor._id, appointmentDate, timeSlot);
     if (doubleBookCheck.isConflict) {
       return res.status(409).json({ success: false, message: doubleBookCheck.message });
     }
@@ -165,7 +188,7 @@ const createAppointment = async (req, res) => {
       patientName: patientName || (req.user ? req.user.name : 'Guest'),
       patientEmail: patientEmail || (req.user ? req.user.email : ''),
       patientPhone: patientPhone || '',
-      doctorId,
+      doctorId: localDoctor._id,
       doctorName: doctor.name,
       specialty: doctor.specialty,
       appointmentDate: new Date(appointmentDate),
@@ -224,6 +247,33 @@ const getMyAppointments = async (req, res) => {
     });
   } catch (error) {
     console.error('Get my appointments error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Get doctor's appointments from the shared booking store
+// @route   GET /api/appointments/doctor/:id
+// @access  Doctor/Admin
+const getDoctorAppointments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const localDoctor = await syncDoctorByReference(id);
+
+    if (!localDoctor) {
+      return res.status(404).json({ success: false, message: 'Doctor not found' });
+    }
+
+    if (req.user.role !== 'admin') {
+      const requesterDoctor = await syncDoctorByEmail(req.user.email);
+      if (!requesterDoctor || String(requesterDoctor._id) !== String(localDoctor._id)) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+
+    const appointments = await Appointment.find({ doctorId: localDoctor._id }).sort({ createdAt: -1 });
+    res.json({ success: true, data: appointments });
+  } catch (error) {
+    console.error('Get doctor appointments error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -367,6 +417,15 @@ const updateAppointmentStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cannot update cancelled appointment' });
     }
 
+    if (req.user.role === 'doctor') {
+      const doctor = await syncDoctorByEmail(req.user.email);
+      const allowedDoctorIds = new Set([doctor?._id].filter(Boolean).map((value) => String(value)));
+
+      if (!allowedDoctorIds.has(String(appointment.doctorId))) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+
     appointment.status = status;
     await appointment.save();
 
@@ -377,6 +436,59 @@ const updateAppointmentStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Update status error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Doctor reschedule appointment
+// @route   PATCH /api/appointments/:id/reschedule
+// @access  Doctor/Admin
+const rescheduleDoctorAppointment = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    if (req.user.role === 'doctor') {
+      const doctor = await syncDoctorByEmail(req.user.email);
+      const allowedDoctorIds = new Set([doctor?._id].filter(Boolean).map((value) => String(value)));
+
+      if (!allowedDoctorIds.has(String(appointment.doctorId))) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+
+    const { appointmentDate, time } = req.body;
+
+    if (!appointmentDate || !time) {
+      return res.status(400).json({ success: false, message: 'appointmentDate and time are required' });
+    }
+
+    const nextTimeSlot = {
+      start: time,
+      end: appointment.timeSlot?.end || time
+    };
+
+    const availabilityCheck = await validateDoctorAvailability(appointment.doctorId, appointmentDate, nextTimeSlot);
+    if (!availabilityCheck.isValid) {
+      return res.status(400).json({ success: false, message: availabilityCheck.message });
+    }
+
+    const doubleBookCheck = await checkDoubleBooking(appointment.doctorId, appointmentDate, nextTimeSlot, appointment._id);
+    if (doubleBookCheck.isConflict) {
+      return res.status(409).json({ success: false, message: doubleBookCheck.message });
+    }
+
+    appointment.appointmentDate = new Date(appointmentDate);
+    appointment.timeSlot = nextTimeSlot;
+    appointment.status = 'pending';
+    await appointment.save();
+
+    res.json({ success: true, data: appointment });
+  } catch (error) {
+    console.error('Doctor reschedule error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -508,7 +620,9 @@ module.exports = {
   getAppointmentById,
   updateAppointment,
   cancelAppointment,
+  getDoctorAppointments,
   updateAppointmentStatus,
+  rescheduleDoctorAppointment,
   updatePaymentStatus,
   getAllAppointments,
   adminCancelAppointment

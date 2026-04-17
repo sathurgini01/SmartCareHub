@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { login as loginApi, register as registerApi, getProfile } from '../api/authApi';
+import { clearSession, getAccessToken, getSession, setSession as persistSession } from '../services/storage';
 
 export const AuthContext = createContext(null);
 const normalizeRole = (role) => (typeof role === 'string' ? role.toLowerCase() : role);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(getAccessToken());
   const [loading, setLoading] = useState(true);
 
   const normalizeUser = (userData) => {
@@ -21,17 +22,28 @@ export const AuthProvider = ({ children }) => {
 
   const updateSession = (newToken, userData) => {
     if (newToken) {
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('smartcare-platform-session', JSON.stringify({ token: newToken, user: userData }));
+      persistSession({ token: newToken, user: userData, role: userData?.role });
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
       setToken(newToken);
     } else {
-      localStorage.removeItem('token');
-      localStorage.removeItem('smartcare-platform-session');
+      clearSession();
       delete axios.defaults.headers.common['Authorization'];
       setToken(null);
     }
   };
+
+  const setSession = useCallback((sessionData) => {
+    persistSession(sessionData);
+    const nextToken = sessionData?.token || null;
+    const nextUser = normalizeUser(sessionData?.user || null);
+    if (nextToken) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${nextToken}`;
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+    }
+    setToken(nextToken);
+    setUser(nextUser);
+  }, []);
 
   const logout = useCallback(() => {
     updateSession(null);
@@ -40,7 +52,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const savedToken = localStorage.getItem('token');
+      const savedSession = getSession();
+      const savedToken = savedSession?.token || getAccessToken();
       if (savedToken) {
         try {
           axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
@@ -49,7 +62,7 @@ export const AuthProvider = ({ children }) => {
           setUser(userData);
           setToken(savedToken);
           // Sync session
-          localStorage.setItem('smartcare-platform-session', JSON.stringify({ token: savedToken, user: userData }));
+          persistSession({ token: savedToken, user: userData, role: userData?.role });
         } catch (error) {
           console.error('Profile fetch failed:', error);
           logout();
@@ -122,6 +135,7 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       register, 
+      setSession,
       loading,
       isAuthenticated,
       isAdmin,

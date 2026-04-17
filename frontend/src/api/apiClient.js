@@ -21,7 +21,20 @@ export async function apiRequest(path, options = {}) {
   });
 
   const raw = await response.text();
-  const data = raw ? JSON.parse(raw) : {};
+  const contentType = response.headers.get('content-type') || '';
+  let data = {};
+
+  if (raw) {
+    if (contentType.includes('application/json')) {
+      data = JSON.parse(raw);
+    } else {
+      try {
+        data = JSON.parse(raw);
+      } catch (_error) {
+        data = { message: raw };
+      }
+    }
+  }
 
   if (!response.ok) {
     throw new Error(data.message || 'API request failed');

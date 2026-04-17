@@ -148,10 +148,7 @@
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  min-height: 64px;
 }
 
 .doctor-qualifications {
@@ -168,6 +165,119 @@
   border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 600;
+}
+
+.doctor-info-stack {
+  display: grid;
+  gap: 14px;
+  padding: 0 24px 18px;
+}
+
+.doctor-info-block {
+  padding: 14px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.doctor-info-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.doctor-profile-list {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  min-height: 44px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+}
+
+.profile-label {
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.profile-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+.profile-value.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-status-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.profile-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--primary-50);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.doctor-availability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.availability-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--primary-50);
+  border: 1px solid var(--border-light);
+}
+
+.availability-chip strong {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.availability-chip span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.doctor-muted-copy {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
 }
 
 .doctor-card-footer {
@@ -192,9 +302,19 @@
   color: var(--primary);
 }
 
+.doctor-card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 768px) {
   .doctors-grid { grid-template-columns: 1fr; }
   .search-bar { flex-direction: column; }
   .search-bar .form-input { width: 100%; }
   .doctor-details { flex-direction: column; gap: 8px; }
+  .doctor-card-footer { flex-direction: column; align-items: stretch; gap: 12px; }
+  .doctor-card-actions .btn { width: 100%; justify-content: center; }
+  .profile-detail-row { flex-direction: column; gap: 6px; }
+  .profile-value { text-align: left; }
 }

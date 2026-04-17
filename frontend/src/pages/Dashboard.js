@@ -141,6 +141,9 @@ const Dashboard = () => {
           QUICK ACTIONS
         </h2>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <Link to="/patient/symptom-checker" className="btn btn-primary">
+            AI Symptom Checker
+          </Link>
           <Link to="/profile" className="btn btn-secondary">
             👤 Manage Profile
           </Link>
@@ -152,6 +155,52 @@ const Dashboard = () => {
           </Link>
           <Link to="/appointments" className="btn btn-secondary">
             📅 My Appointments
+          </Link>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: '24px' }}>
+        <h2 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#94a3b8' }}>
+          SMART FEATURES
+        </h2>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px'
+          }}
+        >
+          <Link
+            to="/patient/symptom-checker"
+            className="card"
+            style={{ padding: '18px', textDecoration: 'none', color: '#f1f5f9', border: '1px solid rgba(220,38,38,0.18)' }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '1rem' }}>AI Symptom Checker</h3>
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              Describe symptoms, get AI guidance, and continue the patient flow into doctor booking.
+            </p>
+          </Link>
+
+          <Link
+            to="/patient/notifications"
+            className="card"
+            style={{ padding: '18px', textDecoration: 'none', color: '#f1f5f9', border: '1px solid #1e293b' }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '1rem' }}>Notifications</h3>
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              Track doctor responses, reminders, and appointment updates from one place.
+            </p>
+          </Link>
+
+          <Link
+            to="/appointments"
+            className="card"
+            style={{ padding: '18px', textDecoration: 'none', color: '#f1f5f9', border: '1px solid #1e293b' }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '1rem' }}>Appointments</h3>
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              Browse doctors, book appointments, pay after approval, and join consultations.
+            </p>
           </Link>
         </div>
       </div>

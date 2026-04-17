@@ -2,6 +2,13 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
+const getDashboardPath = (role) => {
+  const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
+  if (normalizedRole === 'doctor') return '/doctor/dashboard';
+  if (normalizedRole === 'admin') return '/admin/dashboard';
+  return '/dashboard';
+};
+
 const Login = () => {
   const { login } = useContext(AuthContext);
   const [form, setForm] = useState({ email: '', password: '' });
@@ -15,14 +22,7 @@ const Login = () => {
     setError('');
     try {
       const result = await login(form);
-      const role = result?.user?.role;
-      if (role === 'doctor') {
-        navigate('/doctor/dashboard');
-      } else if (role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/home');
-      }
+      navigate(getDashboardPath(result?.user?.role), { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }

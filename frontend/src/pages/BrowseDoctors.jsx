@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import doctorService from '../services/doctorService';
 import { formatCurrency, getSpecialtyIcon } from '../utils/formatters';
-import { FiSearch, FiFilter, FiStar, FiClock, FiMapPin, FiArrowRight } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiStar, FiClock, FiMapPin, FiArrowRight, FiCalendar, FiFileText, FiMail, FiPhone, FiUser } from 'react-icons/fi';
 import './BrowseDoctors.css';
+
+const showValue = (value, fallback) => value || fallback;
 
 const BrowseDoctors = () => {
   const [doctors, setDoctors] = useState([]);
@@ -14,14 +16,6 @@ const BrowseDoctors = () => {
   const [specialty, setSpecialty] = useState(searchParams.get('specialty') || '');
   const [sortBy, setSortBy] = useState('rating');
 
-  useEffect(() => {
-    fetchSpecialties();
-  }, []);
-
-  useEffect(() => {
-    fetchDoctors();
-  }, [specialty, sortBy]);
-
   const fetchSpecialties = async () => {
     try {
       const res = await doctorService.getSpecialties();
@@ -31,7 +25,7 @@ const BrowseDoctors = () => {
     }
   };
 
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
     setLoading(true);
     try {
       const params = { sortBy, limit: 50 };
@@ -44,10 +38,22 @@ const BrowseDoctors = () => {
       console.error('Failed to fetch doctors:', err);
     }
     setLoading(false);
-  };
+  }, [search, sortBy, specialty]);
+
+  useEffect(() => {
+    fetchSpecialties();
+  }, []);
+
+  useEffect(() => {
+    fetchDoctors();
+  }, [fetchDoctors]);
 
   const handleSearch = (e) => {
     e.preventDefault();
+    const nextParams = {};
+    if (search.trim()) nextParams.search = search.trim();
+    if (specialty) nextParams.specialty = specialty;
+    setSearchParams(nextParams);
     fetchDoctors();
   };
 
@@ -128,38 +134,120 @@ const BrowseDoctors = () => {
                     </div>
                     <div className="doctor-rating">
                       <FiStar className="star-icon" />
-                      <span>{doctor.rating.toFixed(1)}</span>
-                      <span className="review-count">({doctor.totalReviews})</span>
+                      <span>{doctor.rating?.toFixed?.(1) || '4.0'}</span>
+                      <span className="review-count">({doctor.totalReviews || 0})</span>
                     </div>
                   </div>
 
                   <div className="doctor-details">
                     <div className="detail-item">
                       <FiMapPin size={14} />
-                      <span>{doctor.hospital}</span>
+                      <span>{doctor.hospital || 'Hospital details not added yet'}</span>
                     </div>
                     <div className="detail-item">
                       <FiClock size={14} />
-                      <span>{doctor.experience} years experience</span>
+                      <span>{doctor.experience || 0} years experience</span>
                     </div>
                   </div>
 
-                  <p className="doctor-bio">{doctor.bio}</p>
+                  <p className="doctor-bio">
+                    {doctor.bio || 'This doctor profile is active and available for patient appointment bookings.'}
+                  </p>
 
-                  <div className="doctor-qualifications">
-                    {doctor.qualifications.map((q, i) => (
-                      <span key={i} className="qual-tag">{q}</span>
-                    ))}
+                  <div className="doctor-info-stack">
+                    <div className="doctor-info-block">
+                      <div className="doctor-info-title">
+                        <FiUser size={14} />
+                        <span>Doctor Profile</span>
+                      </div>
+                      <div className="doctor-profile-list">
+                        <div className="profile-detail-row">
+                          <span className="profile-label">Role</span>
+                          <span className="profile-value">{showValue(doctor.role, 'doctor')}</span>
+                        </div>
+                        <div className="profile-detail-row">
+                          <span className="profile-label">Status</span>
+                          <span className="profile-value">{showValue(doctor.status, 'approved')}</span>
+                        </div>
+                        <div className="profile-detail-row">
+                          <span className="profile-label">Title</span>
+                          <span className="profile-value">{showValue(doctor.title, 'Consultant Doctor')}</span>
+                        </div>
+                        <div className="profile-detail-row">
+                          <span className="profile-label">Email</span>
+                          <span className="profile-value with-icon">
+                            <FiMail size={13} />
+                            {showValue(doctor.email, 'Email not added yet')}
+                          </span>
+                        </div>
+                        <div className="profile-detail-row">
+                          <span className="profile-label">Phone</span>
+                          <span className="profile-value with-icon">
+                            <FiPhone size={13} />
+                            {showValue(doctor.phone, 'Phone not added yet')}
+                          </span>
+                        </div>
+                        <div className="profile-detail-row">
+                          <span className="profile-label">License</span>
+                          <span className="profile-value with-icon">
+                            <FiFileText size={13} />
+                            {showValue(doctor.licenseNumber || doctor.qualifications?.[0], 'License not added yet')}
+                          </span>
+                        </div>
+                        <div className="profile-status-row">
+                          <span className="profile-status-chip">
+                            {(doctor.role || 'doctor')} • {(doctor.status || 'approved')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="doctor-info-block">
+                      <div className="doctor-info-title">
+                        <FiFileText size={14} />
+                        <span>Qualifications</span>
+                      </div>
+                      <div className="doctor-qualifications">
+                        {doctor.qualifications?.length ? (
+                          doctor.qualifications.map((q, i) => (
+                            <span key={i} className="qual-tag">{q}</span>
+                          ))
+                        ) : (
+                          <span className="doctor-muted-copy">Qualification details will be updated soon</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="doctor-info-block">
+                      <div className="doctor-info-title">
+                        <FiCalendar size={14} />
+                        <span>Available Days</span>
+                      </div>
+                      {doctor.availability?.length ? (
+                        <div className="doctor-availability-grid">
+                          {doctor.availability.slice(0, 4).map((slot, index) => (
+                            <div key={`${doctor._id}-slot-${index}`} className="availability-chip">
+                              <strong>{slot.day}</strong>
+                              <span>{slot.startTime} - {slot.endTime}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="doctor-muted-copy">Availability not added yet. Patients can still open the booking page.</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="doctor-card-footer">
                     <div className="doctor-fee">
                       <span className="fee-label">Consultation</span>
-                      <span className="fee-amount">{formatCurrency(doctor.consultationFee)}</span>
+                      <span className="fee-amount">{formatCurrency(doctor.consultationFee || 2500)}</span>
                     </div>
-                    <Link to={`/book/${doctor._id}`} className="btn btn-primary">
-                      Book Now <FiArrowRight />
-                    </Link>
+                    <div className="doctor-card-actions">
+                      <Link to={`/book/${doctor._id}`} className="btn btn-primary">
+                        Book Appointment <FiArrowRight />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearSession, getAccessToken } from './storage';
 
 /**
  * Relative base URL — no hardcoded host.
@@ -13,7 +14,7 @@ const api = axios.create({
 // Attach JWT on every request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAccessToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
@@ -25,8 +26,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearSession();
       
       // Don't redirect if already on login-related page
       const isLoginPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/auth');

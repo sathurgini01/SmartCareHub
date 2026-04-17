@@ -12,6 +12,11 @@ import Prescriptions from '../pages/Prescriptions';
 import Appointments from '../pages/Appointments';
 import UploadReport from '../pages/UploadReport';
 import NotFound from '../pages/NotFound';
+import BrowseDoctors from '../pages/BrowseDoctors';
+import BookAppointment from '../pages/BookAppointment';
+import PaymentPage from '../pages/PaymentPage';
+import PaymentHistory from '../pages/PaymentHistory';
+import PaymentConfirmation from '../pages/PaymentConfirmation';
 
 // Patient Feature Components - Member 4
 import AiSymptomChecker         from '../pages/patient/AiSymptomChecker';
@@ -65,6 +70,11 @@ export default function AppRoutes() {
       <Route path="/prescriptions" element={<Layout><Prescriptions /></Layout>} />
       <Route path="/appointments" element={<Layout><Appointments /></Layout>} />
       <Route path="/upload-report" element={<Layout><UploadReport /></Layout>} />
+      <Route path="/doctors" element={<Layout><ProtectedRoute roles={['patient']}><BrowseDoctors /></ProtectedRoute></Layout>} />
+      <Route path="/book/:doctorId" element={<Layout><ProtectedRoute roles={['patient']}><BookAppointment /></ProtectedRoute></Layout>} />
+      <Route path="/payment/:appointmentId" element={<Layout><ProtectedRoute roles={['patient']}><PaymentPage /></ProtectedRoute></Layout>} />
+      <Route path="/payment-history" element={<Layout><ProtectedRoute roles={['patient']}><PaymentHistory /></ProtectedRoute></Layout>} />
+      <Route path="/payment/confirm/:paymentId" element={<Layout><ProtectedRoute roles={['patient']}><PaymentConfirmation /></ProtectedRoute></Layout>} />
 
       {/* ====== Patient Feature Routes (Member 4) ====== */}
       <Route path="/patient/symptom-checker" 

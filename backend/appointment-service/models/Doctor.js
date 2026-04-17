@@ -55,6 +55,10 @@ const doctorSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  licenseNumber: {
+    type: String,
+    default: ''
+  },
   experience: {
     type: Number,
     default: 0 // years
@@ -90,9 +94,25 @@ const doctorSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  phone: {
+    type: String,
+    default: ''
+  },
   bio: {
     type: String,
     default: ''
+  },
+  title: {
+    type: String,
+    default: ''
+  },
+  status: {
+    type: String,
+    default: 'approved'
+  },
+  role: {
+    type: String,
+    default: 'doctor'
   },
   isAvailable: {
     type: Boolean,

@@ -21,27 +21,27 @@ export function setDb(nextDb) {
 }
 
 export function getSession() {
-  const raw = localStorage.getItem(SESSION_KEY);
+  const raw = sessionStorage.getItem(SESSION_KEY);
   return raw ? JSON.parse(raw) : null;
 }
 
 export function setSession(session) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   if (session?.token) {
-    localStorage.setItem(LEGACY_TOKEN_KEY, session.token);
+    sessionStorage.setItem(LEGACY_TOKEN_KEY, session.token);
   } else {
-    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_TOKEN_KEY);
   }
 }
 
 export function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 
 export function getAccessToken() {
   const session = getSession();
-  return session?.token || localStorage.getItem(LEGACY_TOKEN_KEY) || '';
+  return session?.token || sessionStorage.getItem(LEGACY_TOKEN_KEY) || '';
 }
 
 export function wait(data, delay = 220) {

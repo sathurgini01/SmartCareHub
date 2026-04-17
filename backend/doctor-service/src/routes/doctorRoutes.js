@@ -4,6 +4,8 @@ const { authenticate, authorize } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+router.get('/public', doctorController.listPublicDoctors);
+router.get('/public/:id', doctorController.getPublicDoctorProfile);
 router.get('/me', authenticate, authorize('doctor', 'admin'), doctorController.getMyDoctorProfile);
 router.get('/:id', authenticate, authorize('doctor', 'admin'), doctorController.getDoctorProfile);
 router.put('/:id', authenticate, authorize('doctor', 'admin'), doctorController.updateDoctorProfile);

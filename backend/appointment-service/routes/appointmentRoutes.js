@@ -12,7 +12,9 @@ const {
   getAppointmentById,
   updateAppointment,
   cancelAppointment,
+  getDoctorAppointments,
   updateAppointmentStatus,
+  rescheduleDoctorAppointment,
   updatePaymentStatus,
   getAllAppointments,
   adminCancelAppointment
@@ -26,6 +28,7 @@ router.get('/specialties', getSpecialties);
 
 // ============== Patient Routes ==============
 router.post('/', auth, validateAppointmentCreate, createAppointment);
+router.get('/doctor/:id', auth, authorize('doctor', 'admin'), getDoctorAppointments);
 router.get('/my-appointments', auth, getMyAppointments);
 router.get('/:id', auth, getAppointmentById);
 router.put('/:id', auth, validateAppointmentUpdate, updateAppointment);
@@ -33,6 +36,8 @@ router.put('/:id/cancel', auth, cancelAppointment);
 
 // ============== Doctor/Admin Routes ==============
 router.put('/:id/status', auth, authorize('doctor', 'admin'), updateAppointmentStatus);
+router.patch('/:id/status', auth, authorize('doctor', 'admin'), updateAppointmentStatus);
+router.patch('/:id/reschedule', auth, authorize('doctor', 'admin'), rescheduleDoctorAppointment);
 
 // ============== Internal Service Route ==============
 // Used by Payment Service to update payment status

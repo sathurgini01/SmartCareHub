@@ -3,7 +3,8 @@ const TransactionLog = require('../models/TransactionLog');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 
-const APPOINTMENT_SERVICE_URL = process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5001';
+const APPOINTMENT_SERVICE_URL = process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5003';
+const PAYMENT_PORT = process.env.PORT || '5002';
 
 // Helper: Create a transaction log entry
 const createTransactionLog = async (payment, action, previousStatus, performedBy, metadata = {}) => {
@@ -107,7 +108,7 @@ const createPayment = async (req, res) => {
         merchant_id: merchantId,
         return_url: `http://localhost:3000/payment/confirm/${payment._id}`,
         cancel_url: `http://localhost:3000/payment/cancel/${payment._id}`,
-        notify_url: `http://localhost:5002/api/payments/notify`,
+        notify_url: `http://localhost:${PAYMENT_PORT}/api/payments/notify`,
         order_id: orderId,
         items: `Medical Consultation - ${doctorName || 'Doctor'}`,
         currency,
@@ -295,7 +296,7 @@ const getPaymentByAppointment = async (req, res) => {
         merchant_id: merchantId,
         return_url: `http://localhost:3000/payment/confirm/${payment._id}`,
         cancel_url: `http://localhost:3000/payment/cancel/${payment._id}`,
-        notify_url: `http://localhost:5002/api/payments/notify`,
+        notify_url: `http://localhost:${PAYMENT_PORT}/api/payments/notify`,
         order_id: orderId,
         items: `Medical Consultation - ${payment.doctorName || 'Doctor'}`,
         currency: payment.currency,

@@ -23,9 +23,27 @@ const Dashboard = () => {
         </div>
       </div>
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <Link className="btn btn-primary" to="/patient/symptom-checker">AI Symptom Checker</Link>
         <Link className="btn btn-primary" to="/profile">Profile</Link>
         <Link className="btn btn-primary" to="/upload-report">Upload Report</Link>
         <Link className="btn btn-primary" to="/prescriptions">Prescriptions</Link>
+      </div>
+      <div
+        className="stats-grid"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', margin: '2rem 0' }}
+      >
+        <Link className="card" to="/patient/symptom-checker" style={{ padding: '1.25rem', textDecoration: 'none', color: '#fff' }}>
+          <h3>AI Symptom Checker</h3>
+          <p>Analyze symptoms and get guidance from the patient dashboard.</p>
+        </Link>
+        <Link className="card" to="/patient/notifications" style={{ padding: '1.25rem', textDecoration: 'none', color: '#fff' }}>
+          <h3>Notifications</h3>
+          <p>Open your reminders and system alerts quickly.</p>
+        </Link>
+        <Link className="card" to="/appointments" style={{ padding: '1.25rem', textDecoration: 'none', color: '#fff' }}>
+          <h3>Telemedicine Consultation</h3>
+          <p>Open appointments and join your active telemedicine consultation from there.</p>
+        </Link>
       </div>
     </div>
   );

@@ -2,6 +2,13 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
+const getDashboardPath = (role) => {
+  const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
+  if (normalizedRole === 'doctor') return '/doctor/dashboard';
+  if (normalizedRole === 'admin') return '/admin/dashboard';
+  return '/dashboard';
+};
+
 const Register = () => {
   const { register } = useContext(AuthContext);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'patient' });
@@ -20,13 +27,7 @@ const Register = () => {
       const role = result?.user?.role || form.role;
       setSuccess('Registration successful!');
       setTimeout(() => {
-        if (role === 'doctor') {
-          navigate('/doctor/dashboard');
-        } else if (role === 'admin') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/home');
-        }
+        navigate(getDashboardPath(role), { replace: true });
       }, 1000);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');

@@ -41,6 +41,25 @@ module.exports = function (app) {
   );
 
   app.use(
+    createProxyMiddleware('/api/admin', {
+      target: 'http://localhost:5010',
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware(
+      (pathname) =>
+        pathname.startsWith('/api/appointments/doctor/') ||
+        /^\/api\/appointments\/[^/]+\/(status|reschedule)$/.test(pathname),
+      {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+      }
+    )
+  );
+
+  app.use(
     createProxyMiddleware('/api/appointments', {
       target: 'http://localhost:5003',
       changeOrigin: true,

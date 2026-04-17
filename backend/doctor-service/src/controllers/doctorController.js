@@ -37,7 +37,27 @@ async function deleteDoctorAccount(req, res, next) {
   }
 }
 
+async function listPublicDoctors(req, res, next) {
+  try {
+    const doctors = await doctorService.listPublicDoctors();
+    return sendSuccess(res, 200, 'Doctor directory fetched', doctors);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getPublicDoctorProfile(req, res, next) {
+  try {
+    const doctor = await doctorService.getPublicDoctorById(req.params.id);
+    return sendSuccess(res, 200, 'Doctor profile fetched', doctor);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
+  listPublicDoctors,
+  getPublicDoctorProfile,
   getMyDoctorProfile,
   getDoctorProfile,
   updateDoctorProfile,

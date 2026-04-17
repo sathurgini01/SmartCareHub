@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 /* Sidebar nav items — Profile is intentionally NOT here */
 const NAV_LINKS = [
   { to: '/dashboard',    label: 'Dashboard',     icon: '🏠', desc: 'Overview' },
+  { to: '/patient/symptom-checker', label: 'AI Symptom', icon: '🤖', desc: 'Check symptoms' },
   { to: '/prescriptions',label: 'Prescriptions', icon: '💊', desc: 'Your medicines' },
   { to: '/appointments', label: 'Appointments',  icon: '📅', desc: 'Bookings' },
   { to: '/upload-report',label: 'Upload Report', icon: '📤', desc: 'Medical files' },
@@ -251,6 +252,7 @@ const Layout = ({ children }) => {
                   <div style={{ padding: '8px' }}>
                     {[
                       { icon: '👤', label: 'My Profile', action: () => { navigate('/profile'); setDropdownOpen(false); } },
+                      { icon: '🤖', label: 'AI Symptom Checker', action: () => { navigate('/patient/symptom-checker'); setDropdownOpen(false); } },
                       { icon: '💊', label: 'Prescriptions', action: () => { navigate('/prescriptions'); setDropdownOpen(false); } },
                       { icon: '📅', label: 'Appointments', action: () => { navigate('/appointments'); setDropdownOpen(false); } },
                       { icon: '📤', label: 'Upload Report', action: () => { navigate('/upload-report'); setDropdownOpen(false); } },
