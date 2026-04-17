@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 
 const Register = () => {
   const { register } = useContext(AuthContext);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'PATIENT' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'patient' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
@@ -16,9 +16,18 @@ const Register = () => {
     setError('');
     setSuccess('');
     try {
-      await register(form);
-      setSuccess('Registration successful! Please login.');
-      setTimeout(() => navigate('/login'), 1500);
+      const result = await register(form);
+      const role = result?.user?.role || form.role;
+      setSuccess('Registration successful!');
+      setTimeout(() => {
+        if (role === 'doctor') {
+          navigate('/doctor/dashboard');
+        } else if (role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/home');
+        }
+      }, 1000);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     }
@@ -37,7 +46,11 @@ const Register = () => {
           <input className="form-input" type="email" name="email" value={form.email} onChange={handleChange} required />
           <label className="form-label">Password</label>
           <input className="form-input" type="password" name="password" value={form.password} onChange={handleChange} required />
-          <input type="hidden" name="role" value="PATIENT" />
+          <label className="form-label">Role</label>
+          <select className="form-input" name="role" value={form.role} onChange={handleChange} required>
+            <option value="patient">Patient</option>
+            <option value="doctor">Doctor</option>
+          </select>
           <button className="btn btn-primary" type="submit" style={{ width: '100%', marginTop: '1rem' }}>Register</button>
         </form>
       </div>

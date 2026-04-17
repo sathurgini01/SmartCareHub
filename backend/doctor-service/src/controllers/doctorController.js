@@ -10,6 +10,15 @@ async function getDoctorProfile(req, res, next) {
   }
 }
 
+async function getMyDoctorProfile(req, res, next) {
+  try {
+    const doctor = await doctorService.getDoctorByRequester(req.user);
+    return sendSuccess(res, 200, 'Doctor profile fetched', doctor);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function updateDoctorProfile(req, res, next) {
   try {
     const doctor = await doctorService.updateDoctor(req.params.id, req.body, req.user);
@@ -29,6 +38,7 @@ async function deleteDoctorAccount(req, res, next) {
 }
 
 module.exports = {
+  getMyDoctorProfile,
   getDoctorProfile,
   updateDoctorProfile,
   deleteDoctorAccount

@@ -60,12 +60,19 @@ const Register = () => {
         password: form.password,
       });
       if (result.success) {
-        navigate('/dashboard');
+        const role = result?.user?.role || form.role;
+        if (role === 'doctor') {
+          navigate('/doctor/dashboard');
+        } else if (role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setServerError(result.error || 'Registration failed. Please try again.');
       }
-    } catch {
-      setServerError('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      setServerError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

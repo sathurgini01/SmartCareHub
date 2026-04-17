@@ -1,8 +1,9 @@
-﻿const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const ApiError = require('../utils/ApiError');
+const Doctor = require('../models/Doctor');
 
-function authenticate(req, _res, next) {
+async function authenticate(req, _res, next) {
   try {
     const authHeader = req.headers.authorization;
 
@@ -13,8 +14,20 @@ function authenticate(req, _res, next) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, env.jwtSecret);
 
+    let resolvedId = decoded.id;
+
+    // JWT id from centralized auth-service can differ from doctor-service profile id.
+    // Resolve by email so existing role checks continue to work in doctor-service.
+    if (decoded.role === 'doctor' && decoded.email) {
+      const doctor = await Doctor.findOne({ email: decoded.email.toLowerCase() }).select('_id');
+      if (doctor) {
+        resolvedId = String(doctor._id);
+      }
+    }
+
     req.user = {
-      id: decoded.id,
+      id: resolvedId,
+      authUserId: decoded.id,
       email: decoded.email,
       role: decoded.role
     };

@@ -28,6 +28,53 @@ async function getDoctorById(id, requester = null) {
   return doctor;
 }
 
+async function getDoctorByRequester(requester) {
+  if (!requester || !requester.email) {
+    throw new ApiError(401, 'Requester identity is missing');
+  }
+
+  const normalizedEmail = requester.email.toLowerCase();
+  let doctor = await Doctor.findOne({ email: normalizedEmail }).select('-password');
+
+  // First login via centralized auth can exist without a doctor-service profile.
+  // Create a minimal profile so doctor dashboard can open immediately.
+  if (!doctor && requester.role === 'doctor') {
+    const baseSeed = String(requester.authUserId || requester.id || Date.now())
+      .replace(/[^A-Za-z0-9]/g, '')
+      .toUpperCase();
+    const localPart = normalizedEmail.split('@')[0] || 'Doctor';
+
+    let licenseNumber = `TMP-${baseSeed.slice(-8).padStart(8, '0')}`.slice(0, 20);
+    let suffix = 0;
+
+    while (await Doctor.exists({ licenseNumber })) {
+      suffix += 1;
+      const nextSeed = `${baseSeed}${suffix}`.slice(-8).padStart(8, '0');
+      licenseNumber = `TMP-${nextSeed}`.slice(0, 20);
+    }
+
+    await Doctor.create({
+      name: localPart,
+      email: normalizedEmail,
+      password: `Temp#Pass1-${baseSeed.slice(0, 4) || 'DOC'}`,
+      specialization: 'General Medicine',
+      licenseNumber,
+      experience: 0,
+      hospital: '',
+      role: 'doctor',
+      status: 'approved'
+    });
+
+    doctor = await Doctor.findOne({ email: normalizedEmail }).select('-password');
+  }
+
+  if (!doctor) {
+    throw new ApiError(404, 'Doctor profile not found for this account');
+  }
+
+  return doctor;
+}
+
 async function updateDoctor(id, payload, requester) {
   if (
     requester &&
@@ -135,6 +182,7 @@ async function deleteDoctor(id, requester) {
 }
 
 module.exports = {
+  getDoctorByRequester,
   getDoctorById,
   updateDoctor,
   deleteDoctor

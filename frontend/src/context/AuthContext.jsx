@@ -3,6 +3,7 @@ import axios from 'axios';
 import { login as loginApi, register as registerApi, getProfile } from '../api/authApi';
 
 export const AuthContext = createContext(null);
+const normalizeRole = (role) => (typeof role === 'string' ? role.toLowerCase() : role);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -39,7 +40,13 @@ export const AuthProvider = ({ children }) => {
 
     const res = await loginApi(loginData);
     const { token: newToken, user: userData } = res.data;
-    const finalUser = userData || res.data;
+    const finalUser = userData || res.data?.user || res.data;
+    const expectedRole = normalizeRole(loginData?.role);
+    const actualRole = normalizeRole(finalUser?.role);
+
+    if (expectedRole && actualRole && expectedRole !== actualRole) {
+      throw new Error(`This account is ${actualRole}, not ${expectedRole}.`);
+    }
 
     localStorage.setItem('token', newToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
@@ -49,14 +56,19 @@ export const AuthProvider = ({ children }) => {
     return { success: true, user: finalUser };
   };
 
-  const register = async (data) => {
+  const register = async (arg1, arg2) => {
+    const data = typeof arg1 === 'string' ? { ...(arg2 || {}), role: normalizeRole(arg1) } : { ...(arg1 || {}) };
+    if (data.role) {
+      data.role = normalizeRole(data.role);
+    }
+
     const res = await registerApi(data);
     if (res.data.token) {
-       const { token: newToken, user: userData } = res.data;
-       localStorage.setItem('token', newToken);
-       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-       setToken(newToken);
-       setUser(userData);
+      const { token: newToken, user: userData } = res.data;
+      localStorage.setItem('token', newToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      setToken(newToken);
+      setUser(userData);
     }
     return { success: true, ...res.data };
   };
