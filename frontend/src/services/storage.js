@@ -2,6 +2,7 @@ import { buildInitialState } from './mockData';
 
 const DB_KEY = 'smartcare-platform-db';
 const SESSION_KEY = 'smartcare-platform-session';
+const LEGACY_TOKEN_KEY = 'token';
 
 export function getDb() {
   const raw = localStorage.getItem(DB_KEY);
@@ -26,10 +27,21 @@ export function getSession() {
 
 export function setSession(session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  if (session?.token) {
+    localStorage.setItem(LEGACY_TOKEN_KEY, session.token);
+  } else {
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+  }
 }
 
 export function clearSession() {
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+}
+
+export function getAccessToken() {
+  const session = getSession();
+  return session?.token || localStorage.getItem(LEGACY_TOKEN_KEY) || '';
 }
 
 export function wait(data, delay = 220) {

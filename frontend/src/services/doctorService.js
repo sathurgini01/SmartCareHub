@@ -1,13 +1,13 @@
 import { apiRequest } from '../api';
 import api from './api';
-import { getSession, wait } from './storage';
+import { getAccessToken, getSession, wait } from './storage';
 
 let cachedDoctorId = '';
 let cachedToken = '';
 
 function getAuth() {
   const session = getSession();
-  const token = localStorage.getItem('token') || session?.token || '';
+  const token = getAccessToken();
   return { session, token };
 }
 
