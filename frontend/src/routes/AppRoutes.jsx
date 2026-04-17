@@ -13,6 +13,14 @@ import Appointments from '../pages/Appointments';
 import UploadReport from '../pages/UploadReport';
 import NotFound from '../pages/NotFound';
 
+// Appointment Service Components
+import MyAppointments from '../pages/MyAppointments';
+import BrowseDoctors from '../pages/BrowseDoctors';
+import BookAppointment from '../pages/BookAppointment';
+import PaymentPage from '../pages/PaymentPage';
+import PaymentHistory from '../pages/PaymentHistory';
+import PaymentConfirmation from '../pages/PaymentConfirmation';
+
 // Patient Feature Components - Member 4
 import AiSymptomChecker         from '../pages/patient/AiSymptomChecker';
 import TelemedicineConsultation  from '../pages/patient/TelemedicineConsultation';
@@ -61,10 +69,18 @@ export default function AppRoutes() {
 
       {/* ====== Patient Core Protected Routes (Member 1) ====== */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
-      <Route path="/profile" element={<Layout><Profile /></Layout>} />
-      <Route path="/prescriptions" element={<Layout><Prescriptions /></Layout>} />
-      <Route path="/appointments" element={<Layout><Appointments /></Layout>} />
-      <Route path="/upload-report" element={<Layout><UploadReport /></Layout>} />
+      <Route path="/profile" element={<Layout><ProtectedRoute roles={['patient']}><Profile /></ProtectedRoute></Layout>} />
+      <Route path="/prescriptions" element={<Layout><ProtectedRoute roles={['patient']}><Prescriptions /></ProtectedRoute></Layout>} />
+      <Route path="/appointments" element={<Layout><ProtectedRoute roles={['patient']}><Appointments /></ProtectedRoute></Layout>} />
+      <Route path="/upload-report" element={<Layout><ProtectedRoute roles={['patient']}><UploadReport /></ProtectedRoute></Layout>} />
+
+      {/* ====== Appointment Service Routes ====== */}
+      <Route path="/my-appointments" element={<Layout><ProtectedRoute roles={['patient']}><MyAppointments /></ProtectedRoute></Layout>} />
+      <Route path="/doctors" element={<Layout><BrowseDoctors /></Layout>} />
+      <Route path="/book-appointment/:doctorId" element={<Layout><ProtectedRoute roles={['patient']}><BookAppointment /></ProtectedRoute></Layout>} />
+      <Route path="/payment/:appointmentId" element={<Layout><ProtectedRoute roles={['patient']}><PaymentPage /></ProtectedRoute></Layout>} />
+      <Route path="/payment/confirm/:paymentId" element={<Layout><ProtectedRoute roles={['patient']}><PaymentConfirmation /></ProtectedRoute></Layout>} />
+      <Route path="/payment-history" element={<Layout><ProtectedRoute roles={['patient']}><PaymentHistory /></ProtectedRoute></Layout>} />
 
       {/* ====== Patient Feature Routes (Member 4) ====== */}
       <Route path="/patient/symptom-checker" 

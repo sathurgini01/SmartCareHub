@@ -157,7 +157,7 @@ const BrowseDoctors = () => {
                       <span className="fee-label">Consultation</span>
                       <span className="fee-amount">{formatCurrency(doctor.consultationFee)}</span>
                     </div>
-                    <Link to={`/book/${doctor._id}`} className="btn btn-primary">
+                    <Link to={`/book-appointment/${doctor._id}`} className="btn btn-primary">
                       Book Now <FiArrowRight />
                     </Link>
                   </div>

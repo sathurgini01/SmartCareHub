@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -51,18 +52,23 @@ const Appointments = () => {
         }}
       >
         <h1 style={{ margin: 0 }}>Appointments</h1>
-        <span
-          style={{
-            background: '#1e293b',
-            border: '1px solid #334155',
-            borderRadius: '20px',
-            padding: '4px 14px',
-            color: '#94a3b8',
-            fontSize: '0.9rem',
-          }}
-        >
-          {appointments.length} record{appointments.length !== 1 ? 's' : ''}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span
+            style={{
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '20px',
+              padding: '4px 14px',
+              color: '#94a3b8',
+              fontSize: '0.9rem',
+            }}
+          >
+            {appointments.length} record{appointments.length !== 1 ? 's' : ''}
+          </span>
+          <Link to="/my-appointments" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', background: '#dc2626', color: '#fff', textDecoration: 'none' }}>
+            Make Appointment
+          </Link>
+        </div>
       </div>
 
       {error && <div className="alert-error">{error}</div>}

@@ -7,7 +7,7 @@ const normalizeRole = (role) => (typeof role === 'string' ? role.toLowerCase() :
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(sessionStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   const normalizeUser = (userData) => {
@@ -21,13 +21,13 @@ export const AuthProvider = ({ children }) => {
 
   const updateSession = (newToken, userData) => {
     if (newToken) {
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('smartcare-platform-session', JSON.stringify({ token: newToken, user: userData }));
+      sessionStorage.setItem('token', newToken);
+      sessionStorage.setItem('smartcare-platform-session', JSON.stringify({ token: newToken, user: userData }));
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
       setToken(newToken);
     } else {
-      localStorage.removeItem('token');
-      localStorage.removeItem('smartcare-platform-session');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('smartcare-platform-session');
       delete axios.defaults.headers.common['Authorization'];
       setToken(null);
     }
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const savedToken = localStorage.getItem('token');
+      const savedToken = sessionStorage.getItem('token');
       if (savedToken) {
         try {
           axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
           setUser(userData);
           setToken(savedToken);
           // Sync session
-          localStorage.setItem('smartcare-platform-session', JSON.stringify({ token: savedToken, user: userData }));
+          sessionStorage.setItem('smartcare-platform-session', JSON.stringify({ token: savedToken, user: userData }));
         } catch (error) {
           console.error('Profile fetch failed:', error);
           logout();

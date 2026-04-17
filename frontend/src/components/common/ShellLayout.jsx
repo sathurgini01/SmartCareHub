@@ -32,6 +32,15 @@ function AppIcon({ type }) {
     );
   }
 
+  if (type === 'home') {
+    return (
+      <svg {...commonProps}>
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    );
+  }
+
   return (
     <svg {...commonProps}>
       <path d="M15 18l-6-6 6-6" />
@@ -62,6 +71,10 @@ export default function ShellLayout({ children }) {
         </div>
 
         <div className="topbar-actions topbar-actions-simple">
+          <button className="nav-logout" onClick={() => navigate('/dashboard')} style={{ marginRight: '8px' }}>
+            <AppIcon type="home" />
+            Home
+          </button>
           <button className="profile-trigger" onClick={() => navigate(profilePath)}>
             <span className="profile-icon-circle">
               <AppIcon type="user" />

@@ -3,7 +3,7 @@ import axios from 'axios';
 const createInstance = (baseURL) => {
   const instance = axios.create({ baseURL });
   instance.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   });
@@ -11,7 +11,7 @@ const createInstance = (baseURL) => {
     (res) => res,
     (err) => {
       if (err.response?.status === 401) {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         window.location.href = '/login';
       }
       return Promise.reject(err);

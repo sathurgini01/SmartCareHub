@@ -1,13 +1,14 @@
 export const API_BASE_URL =
-  process.env.REACT_APP_DOCTOR_API_URL || '';
+  process.env.REACT_APP_DOCTOR_API_URL || 'http://localhost:5010/api';
 
 export async function apiRequest(path, options = {}) {
   const { method = 'GET', body, token } = options;
   const headers = body ? { 'Content-Type': 'application/json' } : {};
 
+  // Path adjustments
   let finalPath = path;
-  if (!API_BASE_URL && !path.startsWith('/api')) {
-    finalPath = `/api${path}`;
+  if (path.startsWith('/api')) {
+    finalPath = path.substring(4);
   }
 
   if (token) {
@@ -21,7 +22,19 @@ export async function apiRequest(path, options = {}) {
   });
 
   const raw = await response.text();
-  const data = raw ? JSON.parse(raw) : {};
+  let data = {};
+  
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      // Handle the case where response is not JSON (e.g. gateway HTML error)
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}: ${raw.substring(0, 100)}...`);
+      }
+      throw new Error('Received non-JSON response from server');
+    }
+  }
 
   if (!response.ok) {
     throw new Error(data.message || 'API request failed');

@@ -6,6 +6,7 @@ import appointmentService from '../services/appointmentService';
 import { formatCurrency, formatTime, getSpecialtyIcon, formatDateLong } from '../utils/formatters';
 import { FiCalendar, FiClock, FiStar, FiMapPin, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import { toast } from 'react-toastify';
+import BookingForm from '../components/appointments/BookingForm';
 import './BookAppointment.css';
 
 const BookAppointment = () => {
@@ -193,7 +194,10 @@ const BookAppointment = () => {
                     type="date"
                     className="form-input date-input"
                     value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setSelectedSlot({ start: '09:00', end: '09:30' });
+                    }}
                     min={getMinDate()}
                     max={getMaxDate()}
                     required
@@ -206,128 +210,14 @@ const BookAppointment = () => {
                 </div>
               </div>
 
-              {/* Step 2: Time Slot */}
-              <div className="booking-step">
-                <div className="step-label">
-                  <span className="step-num">2</span>
-                  <span>Select Time Slot</span>
-                </div>
-                <div className="card">
-                  {!selectedDate ? (
-                    <p className="slot-hint">Please select a date first</p>
-                  ) : slotsLoading ? (
-                    <div className="spinner-overlay" style={{ minHeight: '100px' }}><div className="spinner"></div></div>
-                  ) : slots.length === 0 ? (
-                    <div className="slot-hint">
-                      <FiAlertCircle /> No available slots on this day. The doctor may not work on this day.
-                    </div>
-                  ) : (
-                    <>
-                      <div className="slots-legend">
-                        <span className="legend-item"><span className="legend-dot available"></span> Available ({availableSlots.length})</span>
-                        <span className="legend-item"><span className="legend-dot booked"></span> Booked ({bookedSlots.length})</span>
-                      </div>
-                      <div className="slots-grid">
-                        {slots.map((slot, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            className={`slot-btn ${!slot.available ? 'booked' : ''} ${selectedSlot?.start === slot.start ? 'selected' : ''}`}
-                            disabled={!slot.available}
-                            onClick={() => setSelectedSlot(slot)}
-                          >
-                            {selectedSlot?.start === slot.start && <FiCheck size={14} />}
-                            {formatTime(slot.start)}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 3: Patient Info */}
-              <div className="booking-step">
-                <div className="step-label">
-                  <span className="step-num">3</span>
-                  <span>Patient Details</span>
-                </div>
-                <div className="card">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Full Name *</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={form.patientName}
-                        onChange={(e) => setForm({...form, patientName: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Email *</label>
-                      <input
-                        type="email"
-                        className="form-input"
-                        value={form.patientEmail}
-                        onChange={(e) => setForm({...form, patientEmail: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone Number</label>
-                    <input
-                      type="tel"
-                      className="form-input"
-                      placeholder="+94 7X XXX XXXX"
-                      value={form.patientPhone}
-                      onChange={(e) => setForm({...form, patientPhone: e.target.value})}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Reason for Visit *</label>
-                    <textarea
-                      className="form-input"
-                      placeholder="Briefly describe your symptoms or reason for the visit..."
-                      value={form.reason}
-                      onChange={(e) => setForm({...form, reason: e.target.value})}
-                      required
-                      minLength={5}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Additional Notes</label>
-                    <textarea
-                      className="form-input"
-                      placeholder="Any allergies, medications, or special requirements..."
-                      value={form.notes}
-                      onChange={(e) => setForm({...form, notes: e.target.value})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Summary & Submit */}
-              {selectedDate && selectedSlot && (
-                <div className="booking-summary card animate-scaleIn">
-                  <h3>Booking Summary</h3>
-                  <div className="summary-grid">
-                    <div><span>Doctor</span><strong>{doctor.name}</strong></div>
-                    <div><span>Specialty</span><strong>{doctor.specialty}</strong></div>
-                    <div><span>Date</span><strong>{formatDateLong(selectedDate)}</strong></div>
-                    <div><span>Time</span><strong>{formatTime(selectedSlot.start)} - {formatTime(selectedSlot.end)}</strong></div>
-                    <div><span>Fee</span><strong className="summary-fee">{formatCurrency(doctor.consultationFee)}</strong></div>
-                  </div>
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary btn-lg btn-block"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Booking...' : 'Confirm & Proceed to Payment'}
-                  </button>
-                </div>
-              )}
+              {/* Booking Form Integration */}
+              <BookingForm 
+                form={form} 
+                setForm={setForm} 
+                submitting={submitting} 
+                selectedDate={selectedDate ? formatDateLong(selectedDate) : null}
+                doctorName={doctor.name}
+              />
             </form>
           </div>
         </div>

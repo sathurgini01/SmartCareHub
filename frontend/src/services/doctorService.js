@@ -109,14 +109,14 @@ export async function getDoctorDashboard(_doctorId) {
   const [doctorResponse, availabilityResponse, appointmentsResponse, prescriptionsResponse] = await Promise.all([
     apiRequest(`/doctors/${doctorId}`, { token }),
     apiRequest(`/availability/${doctorId}`, { token }),
-    apiRequest(`/appointments/doctor/${doctorId}`, { token }),
+    api.get(`/appointments/doctor/${doctorId}`),
     apiRequest(`/prescriptions/${doctorId}`, { token })
   ]);
 
   return {
     doctor: mapDoctor(doctorResponse.data),
     availability: availabilityResponse.data.map(mapAvailability),
-    appointments: appointmentsResponse.data.map(mapAppointment),
+    appointments: appointmentsResponse.data.data.map(mapAppointment),
     prescriptions: prescriptionsResponse.data.map(mapPrescription),
     reports: [],
     telemedicineSessions: []
