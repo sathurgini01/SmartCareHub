@@ -8,17 +8,6 @@ networks:
   smartcare-net:
     driver: bridge
 
-volumes:
-  auth-db-data:
-    driver: local
-  patient-db-data:
-    driver: local
-  appointment-db-data:
-    driver: local
-  payment-db-data:
-    driver: local
-  patient-uploads:
-    driver: local
 
 services:
 
@@ -102,6 +91,86 @@ services:
       retries: 5
       start_period: 20s
 
+  # ── Doctor MongoDB ──────────────────────────────────────────────────────
+  doctor-db:
+    image: mongo:7.0
+    container_name: doctor-db
+    restart: unless-stopped
+    ports:
+      - "27021:27017"
+    networks:
+      - smartcare-net
+    volumes:
+      - doctor-db-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: doctor-service
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Telemedicine MongoDB ──────────────────────────────────────────────────
+  telemedicine-db:
+    image: mongo:7.0
+    container_name: telemedicine-db
+    restart: unless-stopped
+    ports:
+      - "27022:27017"
+    networks:
+      - smartcare-net
+    volumes:
+      - telemedicine-db-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: telemedicine-service
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Notification MongoDB ──────────────────────────────────────────────────
+  notification-db:
+    image: mongo:7.0
+    container_name: notification-db
+    restart: unless-stopped
+    ports:
+      - "27023:27017"
+    networks:
+      - smartcare-net
+    volumes:
+      - notification-db-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: notification-service
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── AI Symptom MongoDB ────────────────────────────────────────────────────
+  ai-db:
+    image: mongo:7.0
+    container_name: ai-db
+    restart: unless-stopped
+    ports:
+      - "27024:27017"
+    networks:
+      - smartcare-net
+    volumes:
+      - ai-db-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: ai-symptom-service
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   # ── Auth Service ─────────────────────────────────────────────────────────
   auth-service:
     build:
@@ -115,7 +184,7 @@ services:
       - smartcare-net
     environment:
       PORT: 5001
-      MONGO_URI: mongodb://auth-db:27017/auth-service
+      MONGO_URI: mongodb+srv://leodasco9_db_user:smartcarehub@cluster0.czapmpf.mongodb.net/user?appName=Cluster0
       JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
       NODE_ENV: production
     depends_on:
@@ -143,7 +212,7 @@ services:
       - patient-uploads:/app/src/uploads
     environment:
       PORT: 5002
-      MONGO_URI: mongodb://patient-db:27017/patient-service
+      MONGO_URI: mongodb+srv://leodasco9_db_user:smartcarehub@cluster0.czapmpf.mongodb.net/patient-service?appName=Cluster0
       JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
       NODE_ENV: production
     depends_on:
@@ -181,6 +250,31 @@ services:
       retries: 4
       start_period: 20s
 
+  # ── Doctor Service ───────────────────────────────────────────────────────
+  doctor-service:
+    build:
+      context: ./backend/doctor-service
+      dockerfile: Dockerfile
+    container_name: doctor-service
+    restart: unless-stopped
+    ports:
+      - "5010:5002" # Host:5010 -> Container:5002
+    networks:
+      - smartcare-net
+    environment:
+      PORT: 5002
+      MONGO_URI: mongodb://doctor-db:27017/doctor-service
+      JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
+    depends_on:
+      doctor-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5002/"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+
   # ── Payment Service ──────────────────────────────────────────────────────
   payment-service:
     build:
@@ -189,7 +283,7 @@ services:
     container_name: payment-service
     restart: unless-stopped
     ports:
-      - "5004:5002" # Host:5004 -> Container:5002
+      - "5011:5002" # Host:5011 -> Container:5002
     networks:
       - smartcare-net
     environment:
@@ -205,6 +299,63 @@ services:
       timeout: 5s
       retries: 4
       start_period: 20s
+
+  # ── Telemedicine Service ─────────────────────────────────────────────────
+  telemedicine-service:
+    build:
+      context: ./backend/telemedicine-service
+      dockerfile: Dockerfile
+    container_name: telemedicine-service
+    restart: unless-stopped
+    ports:
+      - "5004:5004"
+    networks:
+      - smartcare-net
+    environment:
+      PORT: 5004
+      MONGO_URI: mongodb://telemedicine-db:27017/telemedicine-service
+      JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
+    depends_on:
+      telemedicine-db:
+        condition: service_healthy
+
+  # ── Notification Service ──────────────────────────────────────────────────
+  notification-service:
+    build:
+      context: ./backend/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    restart: unless-stopped
+    ports:
+      - "5005:5005"
+    networks:
+      - smartcare-net
+    environment:
+      PORT: 5005
+      MONGO_URI: mongodb://notification-db:27017/notification-service
+      JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
+    depends_on:
+      notification-db:
+        condition: service_healthy
+
+  # ── AI Symptom Service ────────────────────────────────────────────────────
+  ai-symptom-service:
+    build:
+      context: ./backend/ai-symptom-service
+      dockerfile: Dockerfile
+    container_name: ai-symptom-service
+    restart: unless-stopped
+    ports:
+      - "5006:5006"
+    networks:
+      - smartcare-net
+    environment:
+      PORT: 5006
+      MONGO_URI: mongodb://ai-db:27017/ai-symptom-service
+      JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
+    depends_on:
+      ai-db:
+        condition: service_healthy
 
   # ── API Gateway ──────────────────────────────────────────────────────────
   api-gateway:
@@ -246,10 +397,32 @@ services:
         condition: service_healthy
       patient-service:
         condition: service_healthy
+      doctor-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 10s
+
+volumes:
+  auth-db-data:
+    driver: local
+  patient-db-data:
+    driver: local
+  appointment-db-data:
+    driver: local
+  payment-db-data:
+    driver: local
+  doctor-db-data:
+    driver: local
+  telemedicine-db-data:
+    driver: local
+  notification-db-data:
+    driver: local
+  ai-db-data:
+    driver: local
+  patient-uploads:
+    driver: local
 
