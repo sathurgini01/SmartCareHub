@@ -2,9 +2,34 @@ import { apiRequest } from '../api';
 import api from './api';
 import { getSession, wait } from './storage';
 
+let cachedDoctorId = '';
+let cachedToken = '';
+
 function getAuth() {
   const session = getSession();
-  return { session, token: session?.token || '' };
+  const token = localStorage.getItem('token') || session?.token || '';
+  return { session, token };
+}
+
+async function resolveDoctorId(token) {
+  if (!token) {
+    throw new Error('Authentication token missing');
+  }
+
+  if (cachedDoctorId && cachedToken === token) {
+    return cachedDoctorId;
+  }
+
+  const profile = await apiRequest('/doctors/me', { token });
+  const doctorId = profile?.data?._id || profile?.data?.id;
+
+  if (!doctorId) {
+    throw new Error('Unable to resolve doctor profile');
+  }
+
+  cachedDoctorId = doctorId;
+  cachedToken = token;
+  return doctorId;
 }
 
 function mapDoctor(user) {
@@ -78,8 +103,9 @@ function mapPrescription(item) {
   };
 }
 
-export async function getDoctorDashboard(doctorId) {
+export async function getDoctorDashboard(_doctorId) {
   const { token } = getAuth();
+  const doctorId = await resolveDoctorId(token);
   const [doctorResponse, availabilityResponse, appointmentsResponse, prescriptionsResponse] = await Promise.all([
     apiRequest(`/doctors/${doctorId}`, { token }),
     apiRequest(`/availability/${doctorId}`, { token }),
@@ -97,8 +123,9 @@ export async function getDoctorDashboard(doctorId) {
   };
 }
 
-export async function updateDoctorProfile(doctorId, updates) {
+export async function updateDoctorProfile(_doctorId, updates) {
   const { token } = getAuth();
+  const doctorId = await resolveDoctorId(token);
   const response = await apiRequest(`/doctors/${doctorId}`, {
     method: 'PUT',
     token,
@@ -118,8 +145,9 @@ export async function updateDoctorProfile(doctorId, updates) {
   return mapDoctor(response.data);
 }
 
-export async function deleteDoctorProfile(doctorId) {
+export async function deleteDoctorProfile(_doctorId) {
   const { token } = getAuth();
+  const doctorId = await resolveDoctorId(token);
   await apiRequest(`/doctors/${doctorId}`, {
     method: 'DELETE',
     token
@@ -127,8 +155,9 @@ export async function deleteDoctorProfile(doctorId) {
   return true;
 }
 
-export async function saveAvailability(doctorId, slot, editingId = null) {
+export async function saveAvailability(_doctorId, slot, editingId = null) {
   const { token } = getAuth();
+  const doctorId = await resolveDoctorId(token);
   const { startTime, endTime } = toIsoRange(slot);
   const path = editingId ? `/availability/${editingId}` : '/availability';
   const method = editingId ? 'PUT' : 'POST';
@@ -178,8 +207,9 @@ export async function rescheduleAppointment(appointmentId, appointmentDate, time
   return true;
 }
 
-export async function savePrescription(doctorId, payload, editingId = null) {
+export async function savePrescription(_doctorId, payload, editingId = null) {
   const { token } = getAuth();
+  const doctorId = await resolveDoctorId(token);
   const path = editingId ? `/prescriptions/${editingId}` : '/prescriptions';
   const method = editingId ? 'PUT' : 'POST';
 

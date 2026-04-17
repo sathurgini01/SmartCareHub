@@ -25,12 +25,34 @@ const emptyPrescription = {
 export default function PrescriptionsPage() {
   const { user } = useAuth();
   const [history, setHistory] = useState([]);
+  const [patientQueue, setPatientQueue] = useState([]);
   const [form, setForm] = useState(emptyPrescription);
   const [editingId, setEditingId] = useState(null);
 
   const loadData = useCallback(async () => {
     const data = await getDoctorDashboard(user.id);
     setHistory(data.prescriptions);
+
+    const acceptedPatients = data.appointments
+      .filter((item) => item.status === 'confirmed' || item.status === 'rescheduled')
+      .map((item) => ({
+        patientId: item.patientId,
+        patientName: item.patientName,
+        appointmentDate: item.appointmentDate,
+        time: item.time
+      }));
+
+    const deduplicated = [];
+    const seen = new Set();
+    acceptedPatients.forEach((item) => {
+      const key = `${item.patientId}-${item.patientName}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(item);
+      }
+    });
+
+    setPatientQueue(deduplicated);
   }, [user.id]);
 
   useEffect(() => {
@@ -53,6 +75,15 @@ export default function PrescriptionsPage() {
     loadData();
   }
 
+  function handleSelectPatient(patient) {
+    setForm((current) => ({
+      ...current,
+      patientId: patient.patientId || '',
+      patientName: patient.patientName || '',
+      date: current.date || new Date().toISOString().slice(0, 10)
+    }));
+  }
+
   return (
     <ShellLayout
       title="Digital Prescription UI"
@@ -65,6 +96,31 @@ export default function PrescriptionsPage() {
         subtitle="Prepare a polished prescription with medicine rows, diagnosis notes, follow-up tracking, and history."
         variant="prescriptions"
       />
+      <section className="card">
+        <div className="section-heading">
+          <h2>Select Patient</h2>
+          <p>Only accepted appointment patients are shown for prescription creation.</p>
+        </div>
+        <div className="patient-picker-grid">
+          {patientQueue.length ? (
+            patientQueue.map((patient) => (
+              <button
+                type="button"
+                key={`${patient.patientId}-${patient.patientName}`}
+                className="patient-pick-card"
+                onClick={() => handleSelectPatient(patient)}
+              >
+                <strong>{patient.patientName}</strong>
+                <span>ID: {patient.patientId}</span>
+                <small>{patient.appointmentDate} {patient.time}</small>
+              </button>
+            ))
+          ) : (
+            <p className="text-muted">No accepted appointments yet. Accept an appointment first.</p>
+          )}
+        </div>
+      </section>
+
       <section className="card">
         <div className="section-heading">
           <h2>Prescription Creation</h2>
@@ -101,12 +157,6 @@ export default function PrescriptionsPage() {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="button-row">
-          <button className="btn btn-secondary" onClick={() => setForm((current) => ({ ...current, medicines: [...current.medicines, { ...blankMedicine }] }))}>
-            Add Medicine Row
-          </button>
         </div>
 
         <div className="form-grid">

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { login as loginApi, register as registerApi, getProfile } from '../api/authApi';
 
 export const AuthContext = createContext(null);
+const normalizeRole = (role) => (typeof role === 'string' ? role.toLowerCase() : role);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -73,6 +74,13 @@ export const AuthProvider = ({ children }) => {
     const newToken = res.data.token;
     const userData = normalizeUser(res.data.user || res.data);
     
+    const expectedRole = normalizeRole(loginData?.role);
+    const actualRole = normalizeRole(userData?.role);
+
+    if (expectedRole && actualRole && expectedRole !== actualRole) {
+      throw new Error(`This account is ${actualRole}, not ${expectedRole}.`);
+    }
+
     if (userData) delete userData.token;
 
     updateSession(newToken, userData);
@@ -84,9 +92,10 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(async (arg1, arg2) => {
     let registerData;
     if (typeof arg1 === 'string' && typeof arg2 === 'object') {
-       registerData = { ...arg2, role: arg1 };
+       registerData = { ...arg2, role: normalizeRole(arg1) };
     } else {
-       registerData = arg1;
+       registerData = { ...arg1 };
+       if (registerData.role) registerData.role = normalizeRole(registerData.role);
     }
 
     const res = await registerApi(registerData);

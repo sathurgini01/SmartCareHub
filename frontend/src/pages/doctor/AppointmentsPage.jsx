@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Badge from '../../components/common/Badge';
 import DataTable from '../../components/common/DataTable';
 import Modal from '../../components/common/Modal';
@@ -14,6 +15,7 @@ import { doctorNavItems } from '../../utils/navigation';
 
 export default function AppointmentsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [selected, setSelected] = useState(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
@@ -69,6 +71,11 @@ export default function AppointmentsPage() {
                   <button className="btn btn-secondary btn-sm" onClick={() => setSelected(item)}>
                     View Details
                   </button>
+                  {(item.status === 'confirmed' || item.status === 'rescheduled') ? (
+                    <button className="btn btn-primary btn-sm" onClick={() => navigate('/doctor/telemedicine')}>
+                      Telemedicine Session
+                    </button>
+                  ) : null}
                 </div>
               </td>
             </tr>

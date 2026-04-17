@@ -10,6 +10,12 @@ const tabs = [
   { id: 'admin-register', title: 'Admin Register', role: 'admin', mode: 'register' }
 ];
 
+const getDashboardPath = (role) => {
+  if (role === 'admin') return '/admin/dashboard';
+  if (role === 'doctor') return '/doctor/dashboard';
+  return '/dashboard';
+};
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const { user, loginUser, registerUser } = useAuth();
@@ -34,7 +40,7 @@ export default function AuthPage() {
   const selected = useMemo(() => tabs.find((tab) => tab.id === activeTab), [activeTab]);
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getDashboardPath(user.role)} replace />;
   }
 
   async function handleSubmit(event) {
@@ -48,27 +54,22 @@ export default function AuthPage() {
       }
 
       if (selected.mode === 'login') {
-        await loginUser({ email: form.email, password: form.password, role: selected.role });
-        navigate('/home');
+        const result = await loginUser({ email: form.email, password: form.password, role: selected.role });
+        navigate(getDashboardPath(result?.user?.role || selected.role));
       } else {
         await registerUser(selected.role, {
-          fullName: form.fullName,
+          name: form.fullName,
           email: form.email,
           password: form.password,
-          specialization: form.specialization,
-          licenseNumber: form.licenseNumber,
-          experience: Number(form.experience),
-          hospital: form.hospital,
-          profileImage: form.profileImage,
-          accessKey: form.accessKey
+          role: selected.role
         });
-        setAlert({ type: 'success', message: `${selected.role} registration submitted successfully. Redirecting...` });
+        setAlert({ type: 'success', message: `${selected.role} registration successful. Redirecting...` });
         setTimeout(() => {
-          navigate('/home');
+          navigate(getDashboardPath(selected.role));
         }, 1500);
       }
     } catch (error) {
-      setAlert({ type: 'error', message: error.message });
+      setAlert({ type: 'error', message: error.response?.data?.message || error.message });
     } finally {
       setLoading(false);
     }

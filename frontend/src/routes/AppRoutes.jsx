@@ -33,7 +33,6 @@ import AdminProfilePage from '../pages/admin/AdminProfilePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AllDoctorsPage from '../pages/admin/AllDoctorsPage';
 import VerifyDoctorsPage from '../pages/admin/VerifyDoctorsPage';
-import AuthPage from '../pages/auth/AuthPage';
 import AvailabilityPage from '../pages/doctor/AvailabilityPage';
 import DoctorDashboardPage from '../pages/doctor/DoctorDashboardPage';
 import DoctorProfilePage from '../pages/doctor/DoctorProfilePage';
@@ -58,7 +57,7 @@ export default function AppRoutes() {
       <Route path="/home" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth" element={<Navigate to="/login" replace />} />
 
       {/* ====== Patient Core Protected Routes (Member 1) ====== */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />

@@ -183,7 +183,7 @@ const Home = () => {
           ) : (
             <>
               <Link to="/login" style={{...S.loginBtn, background: 'linear-gradient(135deg,#64748b,#475569)'}}>Patient Login</Link>
-              <Link to="/auth" style={S.loginBtn}>Portal Login</Link>
+              <Link to="/login" style={S.loginBtn}>Portal Login</Link>
             </>
           )}
         </div>

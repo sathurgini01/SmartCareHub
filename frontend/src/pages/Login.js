@@ -24,12 +24,19 @@ const Login = () => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        navigate('/');
+        const role = result?.user?.role;
+        if (role === 'doctor') {
+          navigate('/doctor/dashboard');
+        } else if (role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(result.error || 'Login failed. Please try again.');
       }
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
