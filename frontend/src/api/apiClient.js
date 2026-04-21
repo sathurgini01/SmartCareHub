@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.REACT_APP_DOCTOR_API_URL || 'http://localhost:5010/api';
+  process.env.REACT_APP_DOCTOR_API_URL || '/api';
 
 export async function apiRequest(path, options = {}) {
   const { method = 'GET', body, token } = options;

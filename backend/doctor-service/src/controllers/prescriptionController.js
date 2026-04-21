@@ -37,9 +37,19 @@ async function viewPrescriptionHistory(req, res, next) {
   }
 }
 
+async function viewMyPrescriptions(req, res, next) {
+  try {
+    const history = await prescriptionService.getPatientPrescriptionHistory(req.user);
+    return sendSuccess(res, 200, 'Patient prescription history fetched', history);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   createPrescription,
   updatePrescription,
   deletePrescription,
-  viewPrescriptionHistory
+  viewPrescriptionHistory,
+  viewMyPrescriptions
 };

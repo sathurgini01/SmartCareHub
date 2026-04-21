@@ -26,8 +26,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       sessionStorage.removeItem('token');
+      localStorage.removeItem('token');
       sessionStorage.removeItem('user');
       sessionStorage.removeItem('smartcare-platform-session');
+      localStorage.removeItem('smartcare-platform-session');
       
       // Don't redirect if already on login-related page
       const isLoginPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/auth');

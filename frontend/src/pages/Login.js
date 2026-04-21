@@ -50,7 +50,7 @@ const Login = () => {
       >
         {/* Logo / Heading */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ color: '#dc2626', fontSize: '1.8rem', margin: 0 }}>
+          <h1 style={{ color: '#16a34a', fontSize: '1.8rem', margin: 0 }}>
             SmartCareHub
           </h1>
           <p style={{ color: '#94a3b8', marginTop: '6px', fontSize: '0.95rem' }}>
@@ -102,7 +102,7 @@ const Login = () => {
           }}
         >
           Don't have an account?{' '}
-          <Link to="/register" style={{ color: '#dc2626', fontWeight: 600 }}>
+          <Link to="/register" style={{ color: '#16a34a', fontWeight: 600 }}>
             Register here
           </Link>
         </p>
@@ -117,3 +117,4 @@ const Login = () => {
 };
 
 export default Login;
+

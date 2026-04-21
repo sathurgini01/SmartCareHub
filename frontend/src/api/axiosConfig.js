@@ -12,6 +12,9 @@ const createInstance = (baseURL) => {
     (err) => {
       if (err.response?.status === 401) {
         sessionStorage.removeItem('token');
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('smartcare-platform-session');
+        localStorage.removeItem('smartcare-platform-session');
         window.location.href = '/login';
       }
       return Promise.reject(err);
@@ -20,11 +23,8 @@ const createInstance = (baseURL) => {
   return instance;
 };
 
-// Port 5001 - Patient/Auth Service (update if different)
-export const authAPI         = createInstance('http://localhost:5001/api');
-// Port 5004 - Telemedicine Service
-export const telemedicineAPI = createInstance('http://localhost:5004/api/telemedicine');
-// Port 5005 - Notification Service
-export const notificationAPI = createInstance('http://localhost:5005/api/notifications');
-// Port 5006 - AI Symptom Service
-export const aiSymptomAPI    = createInstance('http://localhost:5006/api/ai-symptom');
+// Use CRA/nginx proxy paths so local development and container deployment behave the same.
+export const authAPI         = createInstance('/api/auth');
+export const telemedicineAPI = createInstance('/api/telemedicine');
+export const notificationAPI = createInstance('/api/notifications');
+export const aiSymptomAPI    = createInstance('/api/ai-symptom');

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import appointmentService from '../services/appointmentService';
 import { formatDate, formatTime, formatCurrency, getStatusBadge, getSpecialtyIcon } from '../utils/formatters';
-import { FiCalendar, FiClock, FiX, FiCreditCard, FiChevronDown } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiX, FiCreditCard, FiSearch } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import './MyAppointments.css';
 
@@ -15,11 +15,7 @@ const MyAppointments = () => {
   const [cancelId, setCancelId] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
 
-  useEffect(() => {
-    if (isAuthenticated) fetchAppointments();
-  }, [isAuthenticated, filter]);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     setLoading(true);
     try {
       const params = { limit: 50 };
@@ -30,7 +26,11 @@ const MyAppointments = () => {
       toast.error('Failed to load appointments');
     }
     setLoading(false);
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    if (isAuthenticated) fetchAppointments();
+  }, [isAuthenticated, fetchAppointments]);
 
   const handleCancel = async (id) => {
     if (!cancelReason.trim()) {
@@ -65,13 +65,18 @@ const MyAppointments = () => {
   return (
     <div className="my-appointments page-wrapper">
       <div className="container">
-        <div className="page-header animate-slideUp">
-          <h1>My Appointments</h1>
-          <p>View and manage your booked appointments</p>
+        <div className="page-header animate-slideUp" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div>
+            <h1>My Appointments</h1>
+            <p>View and manage your booked appointments</p>
+          </div>
+          <Link to="/doctors" className="btn btn-primary">
+            <FiSearch /> Find Doctors
+          </Link>
         </div>
 
         <div className="appointments-filters animate-fadeIn">
-          {['', 'pending', 'confirmed', 'completed', 'cancelled'].map(s => (
+          {['', 'pending', 'confirmed', 'rejected', 'rescheduled', 'completed', 'cancelled'].map(s => (
             <button
               key={s}
               className={`filter-chip ${filter === s ? 'active' : ''}`}

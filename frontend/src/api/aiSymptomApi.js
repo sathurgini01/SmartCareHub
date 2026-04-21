@@ -15,5 +15,20 @@ export const checkSymptoms = (patientId, formData) =>
 export const getSymptomHistory = (patientId) =>
   aiSymptomAPI.get('/history', { params: { patientId } });
 
+export const getSymptomHistoryById = (analysisId) =>
+  aiSymptomAPI.get(`/history/${analysisId}`);
+
+export const deleteSymptomHistory = (analysisId) =>
+  aiSymptomAPI.delete(`/history/${analysisId}`);
+
+export const escalateSymptomCheck = (analysisId) =>
+  aiSymptomAPI.post(`/check/${analysisId}/escalate`);
+
+export const createSymptomNotification = (analysisId) =>
+  aiSymptomAPI.post(`/check/${analysisId}/create-notification`);
+
+export const recommendConsultation = (analysisId) =>
+  aiSymptomAPI.post(`/check/${analysisId}/recommend-consultation`);
+
 export const getAdminLogs = () =>
   aiSymptomAPI.get('/admin/logs');

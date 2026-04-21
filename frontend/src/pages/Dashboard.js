@@ -59,9 +59,9 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       {/* Welcome banner */}
-      <div className="welcome-banner card" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', borderLeft: '4px solid #dc2626' }}>
+      <div className="welcome-banner card" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', borderLeft: '4px solid #16a34a' }}>
         <h1 style={{ margin: 0, fontSize: '1.8rem' }}>
-          Welcome back, <span style={{ color: '#dc2626' }}>{user?.name}</span>
+          Welcome back, <span style={{ color: '#22c55e' }}>{user?.name}</span>
         </h1>
         <p style={{ color: '#94a3b8', marginTop: '6px' }}>
           Here is a summary of your healthcare activities.
@@ -70,7 +70,7 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       <div className="stats-grid" style={{ marginBottom: '24px' }}>
-        <div className="stat-card card" style={{ borderTop: '3px solid #dc2626' }}>
+        <div className="stat-card card" style={{ borderTop: '3px solid #16a34a' }}>
           <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📄</div>
           <h3 style={{ color: '#94a3b8', fontSize: '0.9rem', margin: '0 0 8px' }}>
             Medical Reports
@@ -80,7 +80,7 @@ const Dashboard = () => {
           </h2>
           <Link
             to="/upload-report"
-            style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '8px', display: 'block' }}
+            style={{ color: '#22c55e', fontSize: '0.85rem', marginTop: '8px', display: 'block' }}
           >
             Upload new report →
           </Link>
@@ -153,6 +153,9 @@ const Dashboard = () => {
           <Link to="/appointments" className="btn btn-secondary">
             📅 My Appointments
           </Link>
+          <Link to="/patient/telemedicine" className="btn btn-blue">
+            TM Telemedicine
+          </Link>
         </div>
       </div>
 
@@ -184,7 +187,7 @@ const Dashboard = () => {
           </div>
           <Link
             to="/upload-report"
-            style={{ color: '#dc2626', fontSize: '0.9rem', display: 'inline-block', marginTop: '8px' }}
+            style={{ color: '#22c55e', fontSize: '0.9rem', display: 'inline-block', marginTop: '8px' }}
           >
             View all reports →
           </Link>

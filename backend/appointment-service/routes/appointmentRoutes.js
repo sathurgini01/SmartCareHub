@@ -9,6 +9,7 @@ const {
   getSpecialties,
   createAppointment,
   getMyAppointments,
+  getDoctorAppointments,
   getAppointmentById,
   updateAppointment,
   cancelAppointment,
@@ -27,6 +28,7 @@ router.get('/specialties', getSpecialties);
 // ============== Patient Routes ==============
 router.post('/', auth, validateAppointmentCreate, createAppointment);
 router.get('/my-appointments', auth, getMyAppointments);
+router.get('/doctor/:id', auth, authorize('doctor', 'admin'), getDoctorAppointments);
 router.get('/:id', auth, getAppointmentById);
 router.put('/:id', auth, validateAppointmentUpdate, updateAppointment);
 router.put('/:id/cancel', auth, cancelAppointment);

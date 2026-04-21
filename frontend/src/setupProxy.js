@@ -5,6 +5,9 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function (app) {
+  const doctorServiceTarget = process.env.DOCTOR_SERVICE_URL || 'http://127.0.0.1:5010';
+  const appointmentServiceTarget = process.env.APPOINTMENT_SERVICE_URL || 'http://127.0.0.1:5003';
+
   app.use(
     createProxyMiddleware('/api/auth', {
       target: 'http://localhost:5001',
@@ -21,28 +24,55 @@ module.exports = function (app) {
 
   app.use(
     createProxyMiddleware('/api/doctors', {
-      target: 'http://localhost:5010',
+      target: doctorServiceTarget,
       changeOrigin: true,
     })
   );
 
   app.use(
     createProxyMiddleware('/api/availability', {
-      target: 'http://localhost:5010',
+      target: doctorServiceTarget,
       changeOrigin: true,
     })
   );
 
   app.use(
     createProxyMiddleware('/api/prescriptions', {
-      target: 'http://localhost:5010',
+      target: doctorServiceTarget,
       changeOrigin: true,
     })
   );
 
   app.use(
+    createProxyMiddleware('/api/admin', {
+      target: doctorServiceTarget,
+      changeOrigin: true,
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/doctor-appointments', {
+      target: doctorServiceTarget,
+      changeOrigin: true,
+      pathRewrite: {
+        '^/api/doctor-appointments': '/api/appointments',
+      },
+    })
+  );
+
+  app.use(
+    createProxyMiddleware('/api/doctor-auth', {
+      target: doctorServiceTarget,
+      changeOrigin: true,
+      pathRewrite: {
+        '^/api/doctor-auth': '/api/auth',
+      },
+    })
+  );
+
+  app.use(
     createProxyMiddleware('/api/appointments', {
-      target: 'http://localhost:5003',
+      target: appointmentServiceTarget,
       changeOrigin: true,
     })
   );

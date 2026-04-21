@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const seedDoctors = require('./seed/seedDoctors');
+const { syncDoctorDirectory } = require('./services/doctorDirectorySync');
 
 dotenv.config();
 
@@ -43,6 +44,9 @@ const PORT = process.env.PORT || 5001;
 const startServer = async () => {
   await connectDB();
   await seedDoctors();
+  await syncDoctorDirectory(true).catch((error) => {
+    console.error('Doctor directory sync failed during startup:', error.message);
+  });
   
   app.listen(PORT, () => {
     console.log(`🏥 Appointment Service running on port ${PORT}`);

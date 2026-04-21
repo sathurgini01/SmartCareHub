@@ -7,5 +7,11 @@ export const getMyNotifications = (userId) =>
 export const getNotificationById = (id) =>
   notificationAPI.get(`/${id}`);
 
+export const sendEmailNotification = (payload) =>
+  notificationAPI.post('/send-email', payload);
+
+export const sendSmsNotification = (payload) =>
+  notificationAPI.post('/send-sms', payload);
+
 export const getAdminLogs = () =>
   notificationAPI.get('/admin/logs');

@@ -1,4 +1,5 @@
-﻿const Doctor = require('../models/Doctor');
+const Doctor = require('../models/Doctor');
+const Availability = require('../models/Availability');
 const ApiError = require('../utils/ApiError');
 const {
   isValidObjectId,
@@ -12,11 +13,7 @@ async function getDoctorById(id, requester = null) {
     throw new ApiError(400, 'Invalid doctor id');
   }
 
-  if (
-    requester &&
-    requester.role !== 'admin' &&
-    requester.id !== id
-  ) {
+  if (requester && requester.role !== 'admin' && requester.id !== id) {
     throw new ApiError(403, 'You can only access your own profile');
   }
 
@@ -37,7 +34,7 @@ async function getDoctorByRequester(requester) {
   let doctor = await Doctor.findOne({ email: normalizedEmail }).select('-password');
 
   // First login via centralized auth can exist without a doctor-service profile.
-  // Create a minimal profile so doctor dashboard can open immediately.
+  // Create a minimal approved profile so the doctor can be booked immediately.
   if (!doctor && requester.role === 'doctor') {
     const baseSeed = String(requester.authUserId || requester.id || Date.now())
       .replace(/[^A-Za-z0-9]/g, '')
@@ -75,12 +72,61 @@ async function getDoctorByRequester(requester) {
   return doctor;
 }
 
+function toPublicDoctor(doctor, availability = []) {
+  const safeDoctor = doctor.toObject ? doctor.toObject() : { ...doctor };
+  delete safeDoctor.password;
+
+  return {
+    ...safeDoctor,
+    availability: availability.map((slot) => ({
+      id: slot._id,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      location: slot.location,
+      consultationType: slot.consultationType,
+      status: slot.status
+    }))
+  };
+}
+
+async function getPublicDoctors() {
+  const doctors = await Doctor.find({ role: 'doctor', status: 'approved' })
+    .select('-password')
+    .sort({ createdAt: -1 });
+
+  const availability = await Availability.find({
+    doctorId: { $in: doctors.map((doctor) => doctor._id) }
+  }).sort({ startTime: 1 });
+
+  const availabilityByDoctor = new Map();
+  for (const slot of availability) {
+    const key = String(slot.doctorId);
+    const items = availabilityByDoctor.get(key) || [];
+    items.push(slot);
+    availabilityByDoctor.set(key, items);
+  }
+
+  return doctors.map((doctor) =>
+    toPublicDoctor(doctor, availabilityByDoctor.get(String(doctor._id)) || [])
+  );
+}
+
+async function getPublicDoctorById(id) {
+  if (!isValidObjectId(id)) {
+    throw new ApiError(400, 'Invalid doctor id');
+  }
+
+  const doctor = await Doctor.findOne({ _id: id, role: 'doctor', status: 'approved' }).select('-password');
+  if (!doctor) {
+    throw new ApiError(404, 'Doctor not found');
+  }
+
+  const availability = await Availability.find({ doctorId: doctor._id }).sort({ startTime: 1 });
+  return toPublicDoctor(doctor, availability);
+}
+
 async function updateDoctor(id, payload, requester) {
-  if (
-    requester &&
-    requester.role !== 'admin' &&
-    requester.id !== id
-  ) {
+  if (requester && requester.role !== 'admin' && requester.id !== id) {
     throw new ApiError(403, 'You can only update your own profile');
   }
 
@@ -161,11 +207,7 @@ async function updateDoctor(id, payload, requester) {
 }
 
 async function deleteDoctor(id, requester) {
-  if (
-    requester &&
-    requester.role !== 'admin' &&
-    requester.id !== id
-  ) {
+  if (requester && requester.role !== 'admin' && requester.id !== id) {
     throw new ApiError(403, 'You can only delete your own account');
   }
 
@@ -184,6 +226,8 @@ async function deleteDoctor(id, requester) {
 module.exports = {
   getDoctorByRequester,
   getDoctorById,
+  getPublicDoctors,
+  getPublicDoctorById,
   updateDoctor,
   deleteDoctor
 };

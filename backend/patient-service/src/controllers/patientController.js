@@ -1,4 +1,5 @@
 const Patient = require('../models/Patient');
+const DOCTOR_SERVICE_URL = (process.env.DOCTOR_SERVICE_URL || 'http://localhost:5002').replace(/\/$/, '');
 
 // ── Patient: Create profile ──────────────────────────────────────────────────
 exports.createProfile = async (req, res) => {
@@ -142,12 +143,19 @@ exports.getReports = async (req, res) => {
 // ── Patient: Get prescriptions (placeholder — populated by Doctor Service) ──
 exports.getPrescriptions = async (req, res) => {
   try {
-    const patient = await Patient.findOne({ userId: req.user.id });
-    if (!patient) {
-      return res.status(404).json({ error: 'Profile not found.' });
+    const authHeader = req.headers.authorization || '';
+    const response = await fetch(`${DOCTOR_SERVICE_URL}/api/prescriptions/patient/me`, {
+      headers: {
+        Authorization: authHeader
+      }
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json(payload);
     }
-    // Prescriptions are stored on the patient document (issued by Doctor Service)
-    res.json(patient.prescriptions || []);
+
+    res.json(payload.data || []);
   } catch (error) {
     console.error('getPrescriptions error:', error);
     res.status(500).json({ error: 'Server error.' });

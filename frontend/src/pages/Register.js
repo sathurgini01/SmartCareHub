@@ -106,7 +106,7 @@ const Register = () => {
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
             width: '52px', height: '52px', borderRadius: '14px', margin: '0 auto 16px',
-            background: 'linear-gradient(135deg,#dc2626,#991b1b)',
+            background: 'linear-gradient(135deg,#16a34a,#15803d)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '1.5rem', color: '#fff', fontWeight: 900,
           }}>✚</div>
@@ -118,7 +118,7 @@ const Register = () => {
 
         {serverError && (
           <div style={{
-            background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.35)',
+            background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.35)',
             borderRadius: '8px', padding: '12px 16px', color: '#fca5a5',
             fontSize: '0.88rem', marginBottom: '20px',
           }}>{serverError}</div>
@@ -236,10 +236,10 @@ const Register = () => {
             disabled={loading}
             style={{
               width: '100%', padding: '13px',
-              background: loading ? '#7f1d1d' : 'linear-gradient(135deg,#dc2626,#b91c1c)',
+              background: loading ? '#166534' : 'linear-gradient(135deg,#16a34a,#15803d)',
               color: '#fff', border: 'none', borderRadius: '10px',
               fontWeight: 700, fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer',
-              boxShadow: '0 6px 20px rgba(220,38,38,0.35)',
+              boxShadow: '0 6px 20px rgba(34,197,94,0.35)',
               transition: 'all 0.2s',
             }}
           >
@@ -249,7 +249,7 @@ const Register = () => {
 
         <p style={{ textAlign: 'center', marginTop: '20px', color: '#64748b', fontSize: '0.88rem' }}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#dc2626', fontWeight: 700, textDecoration: 'none' }}>
+          <Link to="/login" style={{ color: '#16a34a', fontWeight: 700, textDecoration: 'none' }}>
             Sign In
           </Link>
         </p>
@@ -264,3 +264,4 @@ const Register = () => {
 };
 
 export default Register;
+

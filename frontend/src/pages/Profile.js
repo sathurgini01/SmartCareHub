@@ -155,7 +155,7 @@ const Profile = () => {
                 width: '60px',
                 height: '60px',
                 borderRadius: '50%',
-                background: '#dc2626',
+                background: '#16a34a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

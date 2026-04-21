@@ -3,7 +3,8 @@ import PageBanner from '../../components/common/PageBanner';
 import ShellLayout from '../../components/common/ShellLayout';
 import TelemedicinePanel from '../../components/doctor/TelemedicinePanel';
 import { useAuth } from '../../context/AuthContext';
-import { getDoctorDashboard, saveTelemedicineSession } from '../../services/doctorService';
+import { saveTelemedicineSession } from '../../services/doctorService';
+import { getDoctorTelemedicineHistory } from '../../services/telemedicineService';
 import { doctorNavItems } from '../../utils/navigation';
 
 export default function TelemedicinePage() {
@@ -11,8 +12,8 @@ export default function TelemedicinePage() {
   const [sessions, setSessions] = useState([]);
 
   const loadData = useCallback(async () => {
-    const data = await getDoctorDashboard(user.id);
-    setSessions(data.telemedicineSessions);
+    const history = await getDoctorTelemedicineHistory(user.id);
+    setSessions(history);
   }, [user.id]);
 
   useEffect(() => {

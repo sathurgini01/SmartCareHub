@@ -4,6 +4,26 @@ const DB_KEY = 'smartcare-platform-db';
 const SESSION_KEY = 'smartcare-platform-session';
 const LEGACY_TOKEN_KEY = 'token';
 
+function readStorage(storage, key) {
+  try {
+    return storage.getItem(key);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writeStorage(storage, key, value) {
+  try {
+    if (value === null || value === undefined) {
+      storage.removeItem(key);
+    } else {
+      storage.setItem(key, value);
+    }
+  } catch (_error) {
+    // Ignore storage write failures so the app can keep working in limited environments.
+  }
+}
+
 export function getDb() {
   const raw = localStorage.getItem(DB_KEY);
 
@@ -21,27 +41,37 @@ export function setDb(nextDb) {
 }
 
 export function getSession() {
-  const raw = localStorage.getItem(SESSION_KEY);
+  const raw = readStorage(sessionStorage, SESSION_KEY);
   return raw ? JSON.parse(raw) : null;
 }
 
 export function setSession(session) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  const serialized = JSON.stringify(session);
+  writeStorage(sessionStorage, SESSION_KEY, serialized);
+  writeStorage(localStorage, SESSION_KEY, null);
   if (session?.token) {
-    localStorage.setItem(LEGACY_TOKEN_KEY, session.token);
+    writeStorage(sessionStorage, LEGACY_TOKEN_KEY, session.token);
+    writeStorage(localStorage, LEGACY_TOKEN_KEY, null);
   } else {
-    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    writeStorage(sessionStorage, LEGACY_TOKEN_KEY, null);
+    writeStorage(localStorage, LEGACY_TOKEN_KEY, null);
   }
 }
 
 export function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  writeStorage(sessionStorage, SESSION_KEY, null);
+  writeStorage(localStorage, SESSION_KEY, null);
+  writeStorage(sessionStorage, LEGACY_TOKEN_KEY, null);
+  writeStorage(localStorage, LEGACY_TOKEN_KEY, null);
 }
 
 export function getAccessToken() {
   const session = getSession();
-  return session?.token || localStorage.getItem(LEGACY_TOKEN_KEY) || '';
+  return (
+    session?.token ||
+    readStorage(sessionStorage, LEGACY_TOKEN_KEY) ||
+    ''
+  );
 }
 
 export function wait(data, delay = 220) {

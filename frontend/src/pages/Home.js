@@ -15,26 +15,26 @@ const S = {
     height: '70px',
     background: 'rgba(10,15,30,0.92)',
     backdropFilter: 'blur(12px)',
-    borderBottom: '1px solid rgba(220,38,38,0.25)',
+    borderBottom: '1px solid rgba(34,197,94,0.25)',
     boxShadow: '0 2px 20px rgba(0,0,0,0.5)',
   },
   navBrand: { display: 'flex', alignItems: 'center', gap: '12px' },
   navLogo: {
     width: '38px', height: '38px', borderRadius: '8px',
-    background: 'linear-gradient(135deg,#dc2626,#991b1b)',
+    background: 'linear-gradient(135deg,#16a34a,#15803d)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: '1.2rem', fontWeight: 900, color: '#fff', flexShrink: 0,
   },
   navTitle: { margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' },
-  navSub: { margin: 0, fontSize: '0.68rem', color: '#dc2626', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 },
+  navSub: { margin: 0, fontSize: '0.68rem', color: '#16a34a', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 },
   navLinks: { display: 'flex', alignItems: 'center', gap: '32px' },
   navLink: { color: '#94a3b8', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500, transition: 'color 0.2s' },
   loginBtn: {
-    background: 'linear-gradient(135deg,#dc2626,#b91c1c)',
+    background: 'linear-gradient(135deg,#16a34a,#15803d)',
     color: '#fff', border: 'none', padding: '10px 26px',
     borderRadius: '8px', fontWeight: 700, fontSize: '0.92rem',
     cursor: 'pointer', textDecoration: 'none', display: 'inline-block',
-    boxShadow: '0 4px 15px rgba(220,38,38,0.35)',
+    boxShadow: '0 4px 15px rgba(34,197,94,0.35)',
     transition: 'all 0.25s',
   },
 
@@ -42,8 +42,8 @@ const S = {
   section: (bg) => ({ background: bg, padding: '90px 5%' }),
   inner: { maxWidth: '1200px', margin: '0 auto' },
   sectionTag: {
-    display: 'inline-block', background: 'rgba(220,38,38,0.12)',
-    color: '#dc2626', border: '1px solid rgba(220,38,38,0.3)',
+    display: 'inline-block', background: 'rgba(34,197,94,0.12)',
+    color: '#16a34a', border: '1px solid rgba(34,197,94,0.3)',
     borderRadius: '20px', padding: '4px 14px', fontSize: '0.78rem',
     fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
     marginBottom: '16px',
@@ -53,7 +53,7 @@ const S = {
 };
 
 /* ─── sub-components ──────────────────────────────────────────────────────── */
-const ServiceCard = ({ icon, title, desc, color = '#dc2626' }) => (
+const ServiceCard = ({ icon, title, desc, color = '#16a34a' }) => (
   <div
     style={{
       background: '#111827', border: `1px solid rgba(255,255,255,0.06)`,
@@ -78,7 +78,7 @@ const ServiceCard = ({ icon, title, desc, color = '#dc2626' }) => (
 
 const StatBox = ({ value, label }) => (
   <div style={{ textAlign: 'center', padding: '0 24px' }}>
-    <p style={{ margin: 0, fontSize: '2.6rem', fontWeight: 900, color: '#dc2626', lineHeight: 1 }}>{value}</p>
+    <p style={{ margin: 0, fontSize: '2.6rem', fontWeight: 900, color: '#16a34a', lineHeight: 1 }}>{value}</p>
     <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '0.88rem', fontWeight: 500 }}>{label}</p>
   </div>
 );
@@ -87,13 +87,13 @@ const Step = ({ num, icon, title, desc }) => (
   <div style={{ textAlign: 'center', flex: 1, minWidth: '200px' }}>
     <div style={{
       width: '72px', height: '72px', borderRadius: '50%',
-      background: 'linear-gradient(135deg,#dc2626,#991b1b)',
+      background: 'linear-gradient(135deg,#16a34a,#15803d)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: '1.8rem', margin: '0 auto 18px',
-      boxShadow: '0 8px 24px rgba(220,38,38,0.35)',
+      boxShadow: '0 8px 24px rgba(34,197,94,0.35)',
     }}>{icon}</div>
     <div style={{
-      display: 'inline-block', background: 'rgba(220,38,38,0.15)', color: '#dc2626',
+      display: 'inline-block', background: 'rgba(34,197,94,0.15)', color: '#16a34a',
       borderRadius: '20px', padding: '2px 12px', fontSize: '0.75rem',
       fontWeight: 700, marginBottom: '12px',
     }}>Step {num}</div>
@@ -106,8 +106,8 @@ const ContactItem = ({ icon, label, value, sub }) => (
   <div style={{ display: 'flex', gap: '18px', alignItems: 'flex-start', marginBottom: '28px' }}>
     <div style={{
       width: '48px', height: '48px', borderRadius: '12px', flexShrink: 0,
-      background: 'linear-gradient(135deg,#dc262622,#dc262644)',
-      border: '1px solid #dc262644',
+      background: 'linear-gradient(135deg,#16a34a22,#16a34a44)',
+      border: '1px solid #16a34a44',
       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem',
     }}>{icon}</div>
     <div>
@@ -172,7 +172,7 @@ const Home = () => {
               onClick={() => scrollTo(id)}
               style={{
                 ...S.navLink, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                color: activeSection === id ? '#dc2626' : '#94a3b8',
+                color: activeSection === id ? '#16a34a' : '#94a3b8',
               }}
             >
               {label}
@@ -199,13 +199,13 @@ const Home = () => {
         <div style={{
           position: 'absolute', top: '-200px', right: '-200px',
           width: '600px', height: '600px', borderRadius: '50%',
-          background: 'radial-gradient(circle,rgba(220,38,38,0.08) 0%,transparent 70%)',
+          background: 'radial-gradient(circle,rgba(34,197,94,0.08) 0%,transparent 70%)',
           pointerEvents: 'none',
         }} />
         <div style={{
           position: 'absolute', bottom: '-200px', left: '-200px',
           width: '500px', height: '500px', borderRadius: '50%',
-          background: 'radial-gradient(circle,rgba(220,38,38,0.05) 0%,transparent 70%)',
+          background: 'radial-gradient(circle,rgba(34,197,94,0.05) 0%,transparent 70%)',
           pointerEvents: 'none',
         }} />
 
@@ -213,7 +213,7 @@ const Home = () => {
           <div style={{ flex: '1 1 480px', minWidth: '280px' }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px',
-              background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)',
+              background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
               borderRadius: '20px', padding: '6px 16px', marginBottom: '28px',
             }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', animation: 'pulse 2s infinite' }} />
@@ -226,7 +226,7 @@ const Home = () => {
             }}>
               Your Health,{' '}
               <span style={{
-                background: 'linear-gradient(90deg,#dc2626,#f97316)',
+                background: 'linear-gradient(90deg,#16a34a,#22c55e)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
               }}>
                 Managed Smartly
@@ -246,10 +246,10 @@ const Home = () => {
               <Link
                 to="/register"
                 style={{
-                  background: 'linear-gradient(135deg,#dc2626,#b91c1c)',
+                  background: 'linear-gradient(135deg,#16a34a,#15803d)',
                   color: '#fff', textDecoration: 'none', padding: '14px 36px',
                   borderRadius: '10px', fontWeight: 700, fontSize: '1rem',
-                  boxShadow: '0 8px 24px rgba(220,38,38,0.4)',
+                  boxShadow: '0 8px 24px rgba(34,197,94,0.4)',
                   transition: 'all 0.25s', display: 'inline-block',
                 }}
               >
@@ -289,7 +289,7 @@ const Home = () => {
 
           {/* ── Right: Healthcare Illustration ── */}
           <div style={{ flex: '0 0 420px', minWidth: '300px', display: 'flex', justifyContent: 'center' }}>
-            <svg viewBox="0 0 420 460" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', maxWidth: '420px', filter: 'drop-shadow(0 20px 60px rgba(220,38,38,0.15))' }}>
+            <svg viewBox="0 0 420 460" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', maxWidth: '420px', filter: 'drop-shadow(0 20px 60px rgba(34,197,94,0.15))' }}>
 
               {/* Outer glow circle */}
               <circle cx="210" cy="230" r="190" fill="url(#bgGlow)" opacity="0.4" />
@@ -299,17 +299,17 @@ const Home = () => {
               <rect x="60" y="80" width="300" height="6" rx="3" fill="url(#redGrad)" />
 
               {/* Top bar */}
-              <circle cx="88" cy="108" r="7" fill="#dc2626" opacity="0.8" />
+              <circle cx="88" cy="108" r="7" fill="#16a34a" opacity="0.8" />
               <rect x="104" y="102" width="80" height="12" rx="6" fill="#1e293b" />
               <rect x="296" y="102" width="48" height="12" rx="6" fill="#1e293b" />
 
               {/* Doctor avatar circle */}
-              <circle cx="210" cy="180" r="52" fill="#0f172a" stroke="#dc2626" strokeWidth="2" />
+              <circle cx="210" cy="180" r="52" fill="#0f172a" stroke="#16a34a" strokeWidth="2" />
               <circle cx="210" cy="168" r="22" fill="#1e293b" />
               <ellipse cx="210" cy="205" rx="32" ry="18" fill="#1e293b" />
               {/* Stethoscope */}
-              <path d="M196 205 Q188 218 192 228 Q196 238 206 238 Q216 238 220 228 Q224 218 216 205" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-              <circle cx="206" cy="240" r="5" fill="#dc2626" opacity="0.9" />
+              <path d="M196 205 Q188 218 192 228 Q196 238 206 238 Q216 238 220 228 Q224 218 216 205" stroke="#16a34a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+              <circle cx="206" cy="240" r="5" fill="#16a34a" opacity="0.9" />
               {/* Face */}
               <circle cx="202" cy="165" r="3" fill="#94a3b8" />
               <circle cx="218" cy="165" r="3" fill="#94a3b8" />
@@ -321,9 +321,9 @@ const Home = () => {
 
               {/* Heartbeat line */}
               <rect x="76" y="248" width="268" height="40" rx="8" fill="#0a0f1e" stroke="#1e293b" strokeWidth="1" />
-              <polyline points="80,268 100,268 112,252 122,284 132,258 142,268 160,268 172,268 184,252 194,284 204,268 268,268 280,268" stroke="#dc2626" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="280" cy="268" r="4" fill="#dc2626" />
-              <text x="290" y="272" fill="#dc2626" fontSize="10" fontWeight="700" fontFamily="monospace">LIVE</text>
+              <polyline points="80,268 100,268 112,252 122,284 132,258 142,268 160,268 172,268 184,252 194,284 204,268 268,268 280,268" stroke="#16a34a" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="280" cy="268" r="4" fill="#16a34a" />
+              <text x="290" y="272" fill="#16a34a" fontSize="10" fontWeight="700" fontFamily="monospace">LIVE</text>
 
               {/* Info pills at bottom of card */}
               <rect x="76" y="302" width="82" height="28" rx="8" fill="#0a0f1e" stroke="#1e293b" strokeWidth="1" />
@@ -351,17 +351,17 @@ const Home = () => {
               <text x="26" y="333" fill="#94a3b8" fontSize="9" fontFamily="sans-serif">Digital Prescriptions</text>
 
               {/* Bottom label */}
-              <rect x="110" y="400" width="200" height="36" rx="10" fill="#111827" stroke="#dc262633" strokeWidth="1.5" />
-              <text x="210" y="423" fill="#dc2626" fontSize="12" fontWeight="800" textAnchor="middle" fontFamily="sans-serif">SmartCareHub</text>
+              <rect x="110" y="400" width="200" height="36" rx="10" fill="#111827" stroke="#16a34a33" strokeWidth="1.5" />
+              <text x="210" y="423" fill="#16a34a" fontSize="12" fontWeight="800" textAnchor="middle" fontFamily="sans-serif">SmartCareHub</text>
 
               <defs>
                 <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#dc2626" />
+                  <stop offset="0%" stopColor="#16a34a" />
                   <stop offset="100%" stopColor="#0a0f1e" stopOpacity="0" />
                 </radialGradient>
                 <linearGradient id="redGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#dc2626" />
-                  <stop offset="100%" stopColor="#f97316" />
+                  <stop offset="0%" stopColor="#16a34a" />
+                  <stop offset="100%" stopColor="#22c55e" />
                 </linearGradient>
               </defs>
             </svg>
@@ -389,14 +389,14 @@ const Home = () => {
             gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))',
             gap: '24px',
           }}>
-            <ServiceCard icon="👨‍⚕️" color="#dc2626" title="Doctor Management" desc="Browse verified doctors by specialty. View full profiles, qualifications, and availability before booking." />
+            <ServiceCard icon="👨‍⚕️" color="#16a34a" title="Doctor Management" desc="Browse verified doctors by specialty. View full profiles, qualifications, and availability before booking." />
             <ServiceCard icon="📅" color="#f59e0b" title="Appointment Booking" desc="Search, book, modify, or cancel appointments in real time with instant status tracking." />
             <ServiceCard icon="📹" color="#6366f1" title="Video Consultations" desc="Attend secure telemedicine sessions via Agora/Twilio integration from the comfort of your home." />
             <ServiceCard icon="📄" color="#10b981" title="Medical Reports" desc="Upload, store, and share medical documents and lab reports securely with your care team." />
             <ServiceCard icon="💊" color="#ec4899" title="Digital Prescriptions" desc="Receive and access doctor-issued digital prescriptions with full medication details anytime." />
             <ServiceCard icon="🤖" color="#06b6d4" title="AI Symptom Checker" desc="Input your symptoms and receive AI-powered preliminary health suggestions and recommended specialties." />
             <ServiceCard icon="💳" color="#84cc16" title="Secure Payments" desc="Pay consultation fees securely via PayHere, Dialog Genie, Stripe or PayPal sandbox integrations." />
-            <ServiceCard icon="🔔" color="#f97316" title="Smart Notifications" desc="Get instant SMS and email confirmations for appointments, consultations, and prescriptions." />
+            <ServiceCard icon="🔔" color="#22c55e" title="Smart Notifications" desc="Get instant SMS and email confirmations for appointments, consultations, and prescriptions." />
             <ServiceCard icon="🔐" color="#8b5cf6" title="Role-Based Security" desc="JWT authentication with separate access controls for patients, doctors, and administrators." />
           </div>
         </div>
@@ -415,12 +415,12 @@ const Home = () => {
             }}>
               <div style={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
-                background: 'linear-gradient(90deg,#dc2626,#f97316)',
+                background: 'linear-gradient(90deg,#16a34a,#22c55e)',
               }} />
               <div style={{ textAlign: 'center', marginBottom: '28px' }}>
                 <div style={{ fontSize: '3.5rem', marginBottom: '12px' }}>🏥</div>
                 <h3 style={{ margin: 0, color: '#f1f5f9', fontWeight: 800 }}>SmartCareHub</h3>
-                <p style={{ margin: '4px 0 0', color: '#dc2626', fontSize: '0.82rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>National Health Portal</p>
+                <p style={{ margin: '4px 0 0', color: '#16a34a', fontSize: '0.82rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>National Health Portal</p>
               </div>
               {[
                 { label: 'Platform Type', value: 'Cloud-Native Microservices' },
@@ -499,10 +499,10 @@ const Home = () => {
 
           <div style={{ textAlign: 'center', marginTop: '56px' }}>
             <Link to="/register" style={{
-              background: 'linear-gradient(135deg,#dc2626,#b91c1c)',
+              background: 'linear-gradient(135deg,#16a34a,#15803d)',
               color: '#fff', textDecoration: 'none', padding: '14px 40px',
               borderRadius: '10px', fontWeight: 700, fontSize: '1rem',
-              boxShadow: '0 8px 24px rgba(220,38,38,0.35)', display: 'inline-block',
+              boxShadow: '0 8px 24px rgba(34,197,94,0.35)', display: 'inline-block',
             }}>
               Create Your Free Account
             </Link>
@@ -608,10 +608,10 @@ const Home = () => {
               </div>
 
               <button style={{
-                width: '100%', background: 'linear-gradient(135deg,#dc2626,#b91c1c)',
+                width: '100%', background: 'linear-gradient(135deg,#16a34a,#15803d)',
                 color: '#fff', border: 'none', padding: '13px',
                 borderRadius: '8px', fontWeight: 700, fontSize: '0.95rem',
-                cursor: 'pointer', boxShadow: '0 4px 16px rgba(220,38,38,0.3)',
+                cursor: 'pointer', boxShadow: '0 4px 16px rgba(34,197,94,0.3)',
               }}>
                 Send Message
               </button>
@@ -689,3 +689,4 @@ const Home = () => {
 };
 
 export default Home;
+

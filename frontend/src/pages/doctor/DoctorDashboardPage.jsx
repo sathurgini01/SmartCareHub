@@ -8,6 +8,8 @@ import ShellLayout from '../../components/common/ShellLayout';
 import StatCard from '../../components/common/StatCard';
 import { useAuth } from '../../context/AuthContext';
 import { getDoctorDashboard, updateAppointmentStatus } from '../../services/doctorService';
+import { formatDate } from '../../utils/formatters';
+import { FiVideo } from 'react-icons/fi';
 
 const serviceCards = [
   {
@@ -37,6 +39,13 @@ const serviceCards = [
     route: '/doctor/availability',
     icon: '👤',
     accent: 'availability'
+  },
+  {
+    title: 'Telemedicine',
+    text: 'View online consultation session history',
+    route: '/doctor/telemedicine',
+    icon: <FiVideo />,
+    accent: 'appointments'
   }
 ];
 
@@ -135,7 +144,7 @@ export default function DoctorDashboardPage() {
             renderRow={(item) => (
               <tr key={item.id}>
                 <td>{item.patientName}</td>
-                <td>{item.appointmentDate}</td>
+                <td>{formatDate(item.appointmentDate)}</td>
                 <td>{item.time}</td>
                 <td>{item.reason}</td>
                 <td>{item.consultationType}</td>

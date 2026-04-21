@@ -6,6 +6,7 @@ const PatientSidebar = () => (
     <nav>
       <ul>
         <li><NavLink to="/dashboard">Dashboard</NavLink></li>
+        <li><NavLink to="/patient/symptom-checker">AI Symptom Checker</NavLink></li>
         <li><NavLink to="/profile">Profile</NavLink></li>
         <li><NavLink to="/upload-report">Upload Report</NavLink></li>
         <li><NavLink to="/prescriptions">Prescriptions</NavLink></li>

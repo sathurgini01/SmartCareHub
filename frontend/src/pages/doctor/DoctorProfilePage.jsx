@@ -51,7 +51,7 @@ export default function DoctorProfilePage() {
           </div>
         </div>
 
-        <button className="btn btn-primary" onClick={() => setEditing((current) => !current)}>
+        <button className={editing ? 'btn btn-secondary' : 'btn btn-blue'} onClick={() => setEditing((current) => !current)}>
           {editing ? 'Cancel Edit' : 'Edit Profile'}
         </button>
       </section>

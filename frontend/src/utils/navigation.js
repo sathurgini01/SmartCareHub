@@ -3,6 +3,7 @@ export const doctorNavItems = [
   { to: '/doctor/profile', label: 'Profile', icon: 'Profile' },
   { to: '/doctor/availability', label: 'Availability', icon: 'Calendar' },
   { to: '/doctor/appointments', label: 'Appointments', icon: 'Requests' },
+  { to: '/doctor/telemedicine', label: 'Telemedicine', icon: 'Video' },
   { to: '/doctor/prescriptions', label: 'Prescriptions', icon: 'Rx' },
   { to: '/doctor/reports', label: 'Reports', icon: 'Reports' }
 ];

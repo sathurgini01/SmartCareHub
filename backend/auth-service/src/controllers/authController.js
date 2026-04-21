@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const User = require("../models/User");
 
 // Helper: basic email format check
@@ -9,9 +10,52 @@ const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isStrongPassword = (password) =>
   password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
 
+const isDatabaseReady = () => mongoose.connection.readyState === 1;
+
+const handleAuthError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+
+  if (!isDatabaseReady()) {
+    return res.status(503).json({
+      message: "Authentication service is temporarily unavailable. Please try again in a moment.",
+    });
+  }
+
+  if (error?.name === "ValidationError") {
+    const firstValidationMessage = Object.values(error.errors || {})[0]?.message;
+    return res.status(400).json({
+      message: firstValidationMessage || "Submitted data is invalid.",
+    });
+  }
+
+  if (error?.code === 11000) {
+    return res.status(409).json({
+      message: "An account with this email already exists.",
+    });
+  }
+
+  if (
+    error?.name === "MongooseError" &&
+    typeof error?.message === "string" &&
+    error.message.toLowerCase().includes("buffering timed out")
+  ) {
+    return res.status(503).json({
+      message: "Database connection is not ready yet. Please try again in a moment.",
+    });
+  }
+
+  return res.status(500).json({ message: fallbackMessage });
+};
+
 // POST /api/auth/register
 const register = async (req, res) => {
   try {
+    if (!isDatabaseReady()) {
+      return res.status(503).json({
+        message: "Authentication service is starting up. Please try again in a moment.",
+      });
+    }
+
     const { name, email, password, role, phone, address } = req.body;
 
     // Field presence
@@ -70,16 +114,19 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Register error:", error);
-    return res
-      .status(500)
-      .json({ message: "Registration failed. Please try again." });
+    return handleAuthError(res, error, "Registration failed. Please try again.");
   }
 };
 
 // POST /api/auth/login
 const login = async (req, res) => {
   try {
+    if (!isDatabaseReady()) {
+      return res.status(503).json({
+        message: "Authentication service is starting up. Please try again in a moment.",
+      });
+    }
+
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -125,10 +172,7 @@ const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
-    return res
-      .status(500)
-      .json({ message: "Login failed. Please try again." });
+    return handleAuthError(res, error, "Login failed. Please try again.");
   }
 };
 

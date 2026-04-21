@@ -1,4 +1,5 @@
-﻿const Prescription = require('../models/Prescription');
+const Prescription = require('../models/Prescription');
+const Doctor = require('../models/Doctor');
 const ApiError = require('../utils/ApiError');
 const { isValidObjectId } = require('../validators/commonValidators');
 
@@ -97,9 +98,27 @@ async function getPrescriptionHistory(doctorId, requester) {
   return Prescription.find({ doctorId }).sort({ date: -1 });
 }
 
+async function getPatientPrescriptionHistory(requester) {
+  if (!requester || requester.role !== 'patient') {
+    throw new ApiError(403, 'Only patients can view patient prescription history');
+  }
+
+  const prescriptions = await Prescription.find({ patientId: String(requester.id) }).sort({ date: -1 });
+  const doctorIds = [...new Set(prescriptions.map((item) => String(item.doctorId)))];
+  const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select('name');
+  const doctorNameById = new Map(doctors.map((doctor) => [String(doctor._id), doctor.name]));
+
+  return prescriptions.map((prescription) => {
+    const item = prescription.toObject();
+    item.doctorName = doctorNameById.get(String(item.doctorId)) || 'Doctor';
+    return item;
+  });
+}
+
 module.exports = {
   createPrescription,
   updatePrescription,
   deletePrescription,
-  getPrescriptionHistory
+  getPrescriptionHistory,
+  getPatientPrescriptionHistory
 };

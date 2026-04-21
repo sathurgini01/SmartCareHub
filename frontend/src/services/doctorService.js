@@ -76,13 +76,15 @@ function mapAvailability(slot) {
 }
 
 function mapAppointment(item) {
+  const startTime = item.timeSlot?.start || item.time || (item.scheduledAt ? new Date(item.scheduledAt).toISOString().slice(11, 16) : '');
+
   return {
     id: item._id || item.id,
     doctorId: item.doctorId?._id || item.doctorId,
     patientId: item.patientId || '',
     patientName: item.patientName || '',
     appointmentDate: item.appointmentDate || (item.scheduledAt || '').slice(0, 10),
-    time: item.time || (item.scheduledAt ? new Date(item.scheduledAt).toISOString().slice(11, 16) : ''),
+    time: startTime,
     reason: item.reason || '',
     consultationType: item.consultationType || item.mode || 'Online',
     status: item.status || 'pending'
@@ -109,14 +111,14 @@ export async function getDoctorDashboard(_doctorId) {
   const [doctorResponse, availabilityResponse, appointmentsResponse, prescriptionsResponse] = await Promise.all([
     apiRequest(`/doctors/${doctorId}`, { token }),
     apiRequest(`/availability/${doctorId}`, { token }),
-    api.get(`/appointments/doctor/${doctorId}`),
+    apiRequest(`/appointments/doctor/${doctorId}`, { token }),
     apiRequest(`/prescriptions/${doctorId}`, { token })
   ]);
 
   return {
     doctor: mapDoctor(doctorResponse.data),
     availability: availabilityResponse.data.map(mapAvailability),
-    appointments: appointmentsResponse.data.data.map(mapAppointment),
+    appointments: appointmentsResponse.data.map(mapAppointment),
     prescriptions: prescriptionsResponse.data.map(mapPrescription),
     reports: [],
     telemedicineSessions: []
@@ -190,19 +192,39 @@ export async function deleteAvailability(slotId) {
 export async function updateAppointmentStatus(appointmentId, status) {
   const { token } = getAuth();
   await apiRequest(`/appointments/${appointmentId}/status`, {
-    method: 'PATCH',
+    method: 'PUT',
     token,
     body: { status }
   });
   return true;
 }
 
+export async function deleteAppointmentRequest(appointmentId) {
+  const { token } = getAuth();
+  await apiRequest(`/appointments/${appointmentId}/cancel`, {
+    method: 'PUT',
+    token,
+    body: { reason: 'Removed from doctor appointment queue' }
+  });
+  return true;
+}
+
 export async function rescheduleAppointment(appointmentId, appointmentDate, time) {
   const { token } = getAuth();
-  await apiRequest(`/appointments/${appointmentId}/reschedule`, {
-    method: 'PATCH',
+  const [hours, minutes] = time.split(':').map(Number);
+  const endMinutes = hours * 60 + minutes + 30;
+  const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+
+  await apiRequest(`/appointments/${appointmentId}`, {
+    method: 'PUT',
     token,
-    body: { appointmentDate, time }
+    body: {
+      appointmentDate,
+      timeSlot: {
+        start: time,
+        end: endTime
+      }
+    }
   });
   return true;
 }

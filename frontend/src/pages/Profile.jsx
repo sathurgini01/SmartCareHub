@@ -6,7 +6,7 @@ import PageBanner from '../components/common/PageBanner';
 import { toast } from 'react-toastify';
 
 const Profile = () => {
-  const { user, loginUser } = useAuth();
+  const { user, session, setSession } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [profile, setProfile] = useState({
@@ -45,10 +45,15 @@ const Profile = () => {
     try {
       const res = await api.put('/patients/me', profile);
       toast.success('Profile updated successfully!');
-      // Update local storage/context if name changed
       if (res.data.data) {
-          const updatedUser = { ...user, ...res.data.data };
-          sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        const updatedUser = {
+          ...user,
+          ...res.data.data,
+          id: user?.id || res.data.data.id || res.data.data._id,
+          name: res.data.data.name || res.data.data.fullName || user?.name,
+          fullName: res.data.data.fullName || res.data.data.name || user?.fullName,
+        };
+        setSession({ ...session, user: updatedUser });
       }
     } catch (error) {
       toast.error('Failed to update profile');

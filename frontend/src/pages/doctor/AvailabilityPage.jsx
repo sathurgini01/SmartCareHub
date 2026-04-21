@@ -10,6 +10,7 @@ import {
   saveAvailability
 } from '../../services/doctorService';
 import { doctorNavItems } from '../../utils/navigation';
+import { formatDate } from '../../utils/formatters';
 
 const emptySlot = {
   date: '',
@@ -100,7 +101,7 @@ export default function AvailabilityPage() {
           emptyText="Add your first slot to start receiving bookings."
           renderRow={(item) => (
             <tr key={item.id}>
-              <td>{item.date}</td>
+              <td>{formatDate(item.date)}</td>
               <td>{item.startTime}</td>
               <td>{item.endTime}</td>
               <td>{item.consultationType}</td>
@@ -108,10 +109,10 @@ export default function AvailabilityPage() {
               <td><span className="badge-green">{item.status}</span></td>
               <td>
                 <div className="button-row">
-                  <button className="btn btn-secondary" onClick={() => { setEditingId(item.id); setSlot(item); }}>
+                  <button className="btn btn-blue" onClick={() => { setEditingId(item.id); setSlot(item); }}>
                     Edit
                   </button>
-                  <button className="btn btn-secondary" onClick={() => deleteAvailability(item.id).then(loadData)}>
+                  <button className="btn btn-danger" onClick={() => deleteAvailability(item.id).then(loadData)}>
                     Delete
                   </button>
                 </div>

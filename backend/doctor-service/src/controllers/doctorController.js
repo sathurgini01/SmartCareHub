@@ -10,6 +10,24 @@ async function getDoctorProfile(req, res, next) {
   }
 }
 
+async function getPublicDoctors(req, res, next) {
+  try {
+    const doctors = await doctorService.getPublicDoctors();
+    return sendSuccess(res, 200, 'Public doctors fetched', doctors);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getPublicDoctorById(req, res, next) {
+  try {
+    const doctor = await doctorService.getPublicDoctorById(req.params.id);
+    return sendSuccess(res, 200, 'Doctor profile fetched', doctor);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function getMyDoctorProfile(req, res, next) {
   try {
     const doctor = await doctorService.getDoctorByRequester(req.user);
@@ -38,6 +56,8 @@ async function deleteDoctorAccount(req, res, next) {
 }
 
 module.exports = {
+  getPublicDoctors,
+  getPublicDoctorById,
   getMyDoctorProfile,
   getDoctorProfile,
   updateDoctorProfile,

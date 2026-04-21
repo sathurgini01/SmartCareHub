@@ -84,10 +84,15 @@ const Dashboard = () => {
           <h3>Prescriptions</h3>
           <p>View your digital medicines</p>
         </Link>
-        <Link to="/my-appointments" className="service-card service-card-appointments">
+        <Link to="/appointments" className="service-card service-card-appointments">
           <span className="service-icon service-emoji">📅</span>
           <h3>My Appointments</h3>
           <p>Manage your bookings</p>
+        </Link>
+        <Link to="/patient/telemedicine" className="service-card service-card-appointments">
+          <span className="service-icon service-emoji">TM</span>
+          <h3>Telemedicine</h3>
+          <p>View online session history</p>
         </Link>
       </div>
 

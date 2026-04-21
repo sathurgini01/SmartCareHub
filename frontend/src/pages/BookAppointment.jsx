@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import doctorService from '../services/doctorService';
 import appointmentService from '../services/appointmentService';
 import { formatCurrency, formatTime, getSpecialtyIcon, formatDateLong } from '../utils/formatters';
-import { FiCalendar, FiClock, FiStar, FiMapPin, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiStar, FiMapPin } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import BookingForm from '../components/appointments/BookingForm';
 import './BookAppointment.css';
@@ -30,9 +30,33 @@ const BookAppointment = () => {
     patientPhone: ''
   });
 
+  const fetchDoctor = useCallback(async () => {
+    try {
+      const res = await doctorService.getById(doctorId);
+      if (res.data.success) setDoctor(res.data.data);
+    } catch (err) {
+      toast.error('Failed to load doctor details');
+      navigate('/doctors');
+    }
+    setLoading(false);
+  }, [doctorId, navigate]);
+
+  const fetchSlots = useCallback(async (date) => {
+    setSlotsLoading(true);
+    setSelectedSlot(null);
+    try {
+      const res = await doctorService.getAvailability(doctorId, date);
+      if (res.data.success) setSlots(res.data.data.slots);
+    } catch (err) {
+      toast.error('Failed to load availability');
+      setSlots([]);
+    }
+    setSlotsLoading(false);
+  }, [doctorId]);
+
   useEffect(() => {
     fetchDoctor();
-  }, [doctorId]);
+  }, [fetchDoctor]);
 
   useEffect(() => {
     if (user) {
@@ -48,31 +72,7 @@ const BookAppointment = () => {
     if (selectedDate && doctor) {
       fetchSlots(selectedDate);
     }
-  }, [selectedDate]);
-
-  const fetchDoctor = async () => {
-    try {
-      const res = await doctorService.getById(doctorId);
-      if (res.data.success) setDoctor(res.data.data);
-    } catch (err) {
-      toast.error('Failed to load doctor details');
-      navigate('/doctors');
-    }
-    setLoading(false);
-  };
-
-  const fetchSlots = async (date) => {
-    setSlotsLoading(true);
-    setSelectedSlot(null);
-    try {
-      const res = await doctorService.getAvailability(doctorId, date);
-      if (res.data.success) setSlots(res.data.data.slots);
-    } catch (err) {
-      toast.error('Failed to load availability');
-      setSlots([]);
-    }
-    setSlotsLoading(false);
-  };
+  }, [selectedDate, doctor, fetchSlots]);
 
   const getMinDate = () => {
     const tomorrow = new Date();
@@ -120,8 +120,7 @@ const BookAppointment = () => {
 
       if (res.data.success) {
         toast.success('Appointment booked successfully!');
-        // Navigate to payment
-        navigate(`/payment/${res.data.data._id}`);
+        navigate('/appointments');
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to book appointment';
@@ -137,8 +136,6 @@ const BookAppointment = () => {
   if (!doctor) return null;
 
   const availableSlots = slots.filter(s => s.available);
-  const bookedSlots = slots.filter(s => !s.available);
-
   return (
     <div className="book-appointment page-wrapper">
       <div className="container">
@@ -196,7 +193,7 @@ const BookAppointment = () => {
                     value={selectedDate}
                     onChange={(e) => {
                       setSelectedDate(e.target.value);
-                      setSelectedSlot({ start: '09:00', end: '09:30' });
+                      setSelectedSlot(null);
                     }}
                     min={getMinDate()}
                     max={getMaxDate()}
@@ -210,12 +207,52 @@ const BookAppointment = () => {
                 </div>
               </div>
 
+              <div className="booking-step">
+                <div className="step-label">
+                  <span className="step-num">2</span>
+                  <span>Select Time Slot</span>
+                </div>
+                <div className="card">
+                  {!selectedDate ? (
+                    <p className="date-display">Select a date first to view available time slots.</p>
+                  ) : slotsLoading ? (
+                    <div className="spinner-overlay"><div className="spinner"></div></div>
+                  ) : availableSlots.length === 0 ? (
+                    <p className="date-display">No available slots for this doctor on the selected date.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                      {availableSlots.map((slot) => {
+                        const isSelected =
+                          selectedSlot?.start === slot.start && selectedSlot?.end === slot.end;
+
+                        return (
+                          <button
+                            key={`${slot.start}-${slot.end}`}
+                            type="button"
+                            className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setSelectedSlot(slot)}
+                          >
+                            {formatTime(slot.start)} - {formatTime(slot.end)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {selectedSlot ? (
+                    <p className="date-display" style={{ marginTop: '12px' }}>
+                      <FiClock /> Selected slot: {formatTime(selectedSlot.start)} - {formatTime(selectedSlot.end)}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
               {/* Booking Form Integration */}
               <BookingForm 
                 form={form} 
                 setForm={setForm} 
                 submitting={submitting} 
-                selectedDate={selectedDate ? formatDateLong(selectedDate) : null}
+                selectedDate={selectedDate && selectedSlot ? `${formatDateLong(selectedDate)} at ${formatTime(selectedSlot.start)}` : null}
                 doctorName={doctor.name}
               />
             </form>

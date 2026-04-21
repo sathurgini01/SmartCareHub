@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 /* Sidebar nav items — Profile is intentionally NOT here */
 const NAV_LINKS = [
   { to: '/dashboard',    label: 'Dashboard',     icon: '🏠', desc: 'Overview' },
+  { to: '/patient/symptom-checker', label: 'AI Symptom', icon: 'AI', desc: 'Check symptoms' },
   { to: '/prescriptions',label: 'Prescriptions', icon: '💊', desc: 'Your medicines' },
   { to: '/appointments', label: 'Appointments',  icon: '📅', desc: 'Bookings' },
   { to: '/upload-report',label: 'Upload Report', icon: '📤', desc: 'Medical files' },
@@ -31,7 +32,7 @@ const Layout = ({ children }) => {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0f1e' }}>
         <div style={{
-          border: '3px solid #1e293b', borderTop: '3px solid #dc2626',
+          border: '3px solid #1e293b', borderTop: '3px solid #16a34a',
           borderRadius: '50%', width: '44px', height: '44px',
           animation: 'spin 0.8s linear infinite',
         }} />
@@ -61,13 +62,13 @@ const Layout = ({ children }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '9px', flexShrink: 0,
-              background: 'linear-gradient(135deg,#dc2626,#991b1b)',
+              background: 'linear-gradient(135deg,#16a34a,#15803d)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '1.1rem', fontWeight: 900, color: '#fff',
             }}>✚</div>
             <div>
               <p style={{ margin: 0, fontWeight: 800, color: '#f1f5f9', fontSize: '1rem', letterSpacing: '-0.3px' }}>SmartCareHub</p>
-              <p style={{ margin: 0, fontSize: '0.65rem', color: '#dc2626', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Patient Portal</p>
+              <p style={{ margin: 0, fontSize: '0.65rem', color: '#22c55e', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Patient Portal</p>
             </div>
           </div>
         </div>
@@ -87,8 +88,8 @@ const Layout = ({ children }) => {
                 display: 'flex', alignItems: 'center', gap: '13px',
                 padding: '11px 13px', borderRadius: '10px', marginBottom: '3px',
                 textDecoration: 'none',
-                background: isActive ? 'rgba(220,38,38,0.1)' : 'transparent',
-                border: isActive ? '1px solid rgba(220,38,38,0.25)' : '1px solid transparent',
+                background: isActive ? 'rgba(34,197,94,0.1)' : 'transparent',
+                border: isActive ? '1px solid rgba(34,197,94,0.25)' : '1px solid transparent',
                 transition: 'all 0.18s',
               })}
             >
@@ -96,7 +97,7 @@ const Layout = ({ children }) => {
                 <>
                   <span style={{
                     width: '36px', height: '36px', borderRadius: '9px', flexShrink: 0,
-                    background: isActive ? 'rgba(220,38,38,0.15)' : '#1e293b',
+                    background: isActive ? 'rgba(34,197,94,0.15)' : '#1e293b',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '1rem',
                   }}>{icon}</span>
@@ -105,7 +106,7 @@ const Layout = ({ children }) => {
                     <p style={{ margin: 0, color: '#475569', fontSize: '0.72rem' }}>{desc}</p>
                   </div>
                   {isActive && (
-                    <div style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: '#dc2626', flexShrink: 0 }} />
+                    <div style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
                   )}
                 </>
               )}
@@ -171,8 +172,8 @@ const Layout = ({ children }) => {
               title="Go to Home"
             >🏠</button>
 
-            {/* Notification bell (decorative) */}
-            <button style={{
+            {/* Notification bell */}
+            <button onClick={() => navigate('/patient/notifications')} style={{
               background: '#1e293b', border: '1px solid #334155',
               borderRadius: '10px', width: '38px', height: '38px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -186,8 +187,8 @@ const Layout = ({ children }) => {
                 onClick={() => setDropdownOpen((o) => !o)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
-                  background: dropdownOpen ? '#1e293b' : 'rgba(220,38,38,0.08)',
-                  border: `1px solid ${dropdownOpen ? '#334155' : 'rgba(220,38,38,0.25)'}`,
+                  background: dropdownOpen ? '#1e293b' : 'rgba(34,197,94,0.08)',
+                  border: `1px solid ${dropdownOpen ? '#334155' : 'rgba(34,197,94,0.25)'}`,
                   borderRadius: '10px', padding: '6px 14px 6px 6px',
                   cursor: 'pointer', transition: 'all 0.2s',
                 }}
@@ -195,7 +196,7 @@ const Layout = ({ children }) => {
                 {/* Avatar */}
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '8px',
-                  background: 'linear-gradient(135deg,#dc2626,#991b1b)',
+                  background: 'linear-gradient(135deg,#16a34a,#15803d)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontWeight: 800, color: '#fff', fontSize: '0.95rem', flexShrink: 0,
                 }}>
@@ -205,7 +206,7 @@ const Layout = ({ children }) => {
                   <p style={{ margin: 0, color: '#f1f5f9', fontWeight: 700, fontSize: '0.83rem', whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {user?.name}
                   </p>
-                  <p style={{ margin: 0, color: '#dc2626', fontSize: '0.68rem', fontWeight: 600, textTransform: 'capitalize' }}>
+                  <p style={{ margin: 0, color: '#22c55e', fontSize: '0.68rem', fontWeight: 600, textTransform: 'capitalize' }}>
                     {user?.role || 'patient'}
                   </p>
                 </div>
@@ -228,7 +229,7 @@ const Layout = ({ children }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{
                         width: '42px', height: '42px', borderRadius: '10px',
-                        background: 'linear-gradient(135deg,#dc2626,#991b1b)',
+                        background: 'linear-gradient(135deg,#16a34a,#15803d)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontWeight: 800, color: '#fff', fontSize: '1.1rem', flexShrink: 0,
                       }}>{initial}</div>
@@ -251,6 +252,7 @@ const Layout = ({ children }) => {
                   <div style={{ padding: '8px' }}>
                     {[
                       { icon: '👤', label: 'My Profile', action: () => { navigate('/profile'); setDropdownOpen(false); } },
+                      { icon: 'AI', label: 'AI Symptom Checker', action: () => { navigate('/patient/symptom-checker'); setDropdownOpen(false); } },
                       { icon: '💊', label: 'Prescriptions', action: () => { navigate('/prescriptions'); setDropdownOpen(false); } },
                       { icon: '📅', label: 'Appointments', action: () => { navigate('/appointments'); setDropdownOpen(false); } },
                       { icon: '📤', label: 'Upload Report', action: () => { navigate('/upload-report'); setDropdownOpen(false); } },

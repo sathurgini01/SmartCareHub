@@ -82,7 +82,7 @@ async function registerDoctor(payload) {
     phone: phone || '',
     bio: bio || '',
     profileImage: profileImage || '',
-    status: 'pending',
+    status: 'approved',
     role: 'doctor'
   });
 

@@ -10,6 +10,7 @@ import {
   savePrescription
 } from '../../services/doctorService';
 import { doctorNavItems } from '../../utils/navigation';
+import { formatDate } from '../../utils/formatters';
 
 const blankMedicine = { name: '', dosage: '', frequency: '', duration: '', instructions: '' };
 const emptyPrescription = {
@@ -112,7 +113,7 @@ export default function PrescriptionsPage() {
               >
                 <strong>{patient.patientName}</strong>
                 <span>ID: {patient.patientId}</span>
-                <small>{patient.appointmentDate} {patient.time}</small>
+                <small>{formatDate(patient.appointmentDate)} {patient.time}</small>
               </button>
             ))
           ) : (
@@ -185,15 +186,15 @@ export default function PrescriptionsPage() {
           renderRow={(item) => (
             <tr key={item.id}>
               <td>{item.patientName}</td>
-              <td>{item.date}</td>
+              <td>{formatDate(item.date)}</td>
               <td>{item.diagnosis}</td>
               <td>{item.medicines.map((medicine) => medicine.name).join(', ')}</td>
               <td>
                 <div className="button-row">
-                  <button className="btn btn-secondary" onClick={() => { setEditingId(item.id); setForm(item); }}>
+                  <button className="btn btn-blue" onClick={() => { setEditingId(item.id); setForm(item); }}>
                     Edit
                   </button>
-                  <button className="btn btn-secondary" onClick={() => deletePrescription(item.id).then(loadData)}>
+                  <button className="btn btn-danger" onClick={() => deletePrescription(item.id).then(loadData)}>
                     Delete
                   </button>
                 </div>

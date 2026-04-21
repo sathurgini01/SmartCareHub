@@ -84,7 +84,7 @@ const getSymptomHistory = async (req, res) => {
 
 const getSymptomQueryById = async (req, res) => {
   try {
-    const { queryId } = req.params;
+    const queryId = req.params.queryId || req.params.analysisId;
 
     const query = await AiSymptomQuery.findById(queryId);
 
@@ -106,6 +106,127 @@ const getSymptomQueryById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch AI symptom query",
+      error: error.message,
+    });
+  }
+};
+
+const deleteSymptomQuery = async (req, res) => {
+  try {
+    const { analysisId } = req.params;
+    const deletedQuery = await AiSymptomQuery.findByIdAndDelete(analysisId);
+
+    if (!deletedQuery) {
+      return res.status(404).json({
+        success: false,
+        message: "AI symptom query not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Symptom history deleted successfully",
+      data: deletedQuery,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete symptom history",
+      error: error.message,
+    });
+  }
+};
+
+const escalateSymptomCheck = async (req, res) => {
+  try {
+    const { analysisId } = req.params;
+    const query = await AiSymptomQuery.findById(analysisId);
+
+    if (!query) {
+      return res.status(404).json({
+        success: false,
+        message: "AI symptom query not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "High-risk symptom check escalated for clinical follow-up",
+      data: {
+        analysisId,
+        patientId: query.patientId,
+        riskLevel: query.riskLevel,
+        recommendedSpecialty: query.recommendedSpecialty,
+        status: "escalated",
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to escalate symptom check",
+      error: error.message,
+    });
+  }
+};
+
+const createSymptomNotification = async (req, res) => {
+  try {
+    const { analysisId } = req.params;
+    const query = await AiSymptomQuery.findById(analysisId);
+
+    if (!query) {
+      return res.status(404).json({
+        success: false,
+        message: "AI symptom query not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Notification event prepared for symptom analysis",
+      data: {
+        analysisId,
+        patientId: query.patientId,
+        category: "ai-symptom",
+        riskLevel: query.riskLevel,
+        recommendedSpecialty: query.recommendedSpecialty,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to prepare symptom notification",
+      error: error.message,
+    });
+  }
+};
+
+const recommendConsultation = async (req, res) => {
+  try {
+    const { analysisId } = req.params;
+    const query = await AiSymptomQuery.findById(analysisId);
+
+    if (!query) {
+      return res.status(404).json({
+        success: false,
+        message: "AI symptom query not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Consultation recommendation created",
+      data: {
+        analysisId,
+        specialty: query.recommendedSpecialty,
+        bookingPath: `/doctors?specialty=${encodeURIComponent(query.recommendedSpecialty)}`,
+        consultationType: query.riskLevel === "high" ? "urgent" : "standard",
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to recommend consultation",
       error: error.message,
     });
   }
@@ -133,5 +254,9 @@ module.exports = {
   checkSymptoms,
   getSymptomHistory,
   getSymptomQueryById,
+  deleteSymptomQuery,
+  escalateSymptomCheck,
+  createSymptomNotification,
+  recommendConsultation,
   getAllAiLogs,
 };

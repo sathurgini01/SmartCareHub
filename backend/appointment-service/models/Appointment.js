@@ -34,6 +34,16 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Doctor name is required']
   },
+  doctorEmail: {
+    type: String,
+    default: '',
+    lowercase: true
+  },
+  doctorExternalId: {
+    type: String,
+    default: null,
+    index: true
+  },
   specialty: {
     type: String,
     required: true
@@ -65,7 +75,7 @@ const appointmentSchema = new mongoose.Schema({
   // Status tracking
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
+    enum: ['pending', 'confirmed', 'rejected', 'rescheduled', 'in-progress', 'completed', 'cancelled', 'no-show'],
     default: 'pending',
     index: true
   },
