@@ -120,7 +120,12 @@ const BookAppointment = () => {
 
       if (res.data.success) {
         toast.success('Appointment booked successfully!');
-        navigate('/appointments');
+        const appointmentId = res.data.data?._id || res.data.data?.id;
+        if (appointmentId) {
+          navigate(`/payment/${appointmentId}`);
+        } else {
+          navigate('/appointments');
+        }
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to book appointment';

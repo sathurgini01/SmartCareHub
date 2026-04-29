@@ -71,7 +71,7 @@ const Appointments = () => {
   };
 
   const canPay = (appointment) =>
-    appointment.status === 'confirmed' &&
+    ['pending', 'confirmed'].includes(appointment.status) &&
     (appointment.paymentStatus || 'unpaid') === 'unpaid';
 
   if (loading) {

@@ -21,7 +21,7 @@ const UploadReport = () => {
 
   const fetchReports = async () => {
     try {
-      const res = await api.get('/api/patients/reports');
+      const res = await api.get('/patients/reports');
       setReports(res.data);
     } catch {
       // Non-critical — just don't show the list
@@ -65,7 +65,7 @@ const UploadReport = () => {
 
     setLoading(true);
     try {
-      await api.post('/api/patients/upload-report', formData, {
+      await api.post('/patients/upload-report', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setSuccess('Report uploaded successfully.');

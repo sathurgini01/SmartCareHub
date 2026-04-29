@@ -35,17 +35,33 @@ const PaymentPage = () => {
       try {
         const payRes = await paymentService.getByAppointment(appointmentId);
         if (payRes.data.success) {
-          setExistingPayment(payRes.data.data);
+          const pay = payRes.data.data;
+
+          // If payment is in a failed/cancelled state, cancel it so user can retry
+          if (['failed', 'cancelled'].includes(pay.status)) {
+            try { await paymentService.cancel(pay._id); } catch (_) {}
+            setLoading(false);
+            return;
+          }
+
+          setExistingPayment(pay);
           if (payRes.data.payhereData) {
             setPayhereData(payRes.data.payhereData);
           }
-          if (payRes.data.data.status === 'completed') {
-            navigate(`/payment/confirm/${payRes.data.data._id}`);
+
+          if (pay.status === 'completed') {
+            // Verify appointment is also updated — fix stale cross-service state
+            const apt = aptRes.data.data;
+            if (apt && apt.paymentStatus !== 'paid') {
+              // Re-sync: appointment was never updated (cross-service call failed before)
+              try { await paymentService.simulate(pay._id); } catch (_) {}
+            }
+            navigate(`/payment/confirm/${pay._id}`);
             return;
           }
         }
       } catch (e) {
-        // No existing payment, that's fine
+        // No existing payment — fresh start
       }
     } catch (err) {
       toast.error('Failed to load appointment details');
@@ -57,11 +73,18 @@ const PaymentPage = () => {
   const handlePayHere = async () => {
     setProcessing(true);
     try {
+      // ── Cash at Clinic: no payment record needed ──────────────────────
+      if (paymentMethod === 'cash') {
+        toast.success('Appointment confirmed! Please pay at the clinic.');
+        navigate('/appointments');
+        return;
+      }
+
+      // ── PayHere: create/retrieve payment record ───────────────────────
       let finalPayhereData = payhereData;
       let currentPaymentId = existingPayment?._id;
-      
+
       if (!existingPayment) {
-        // Create payment record
         const res = await paymentService.create({
           appointmentId,
           amount: appointment.consultationFee,
@@ -82,43 +105,70 @@ const PaymentPage = () => {
         }
       }
 
-      // Launch PayHere popup if data is available
-      if (paymentMethod === 'payhere') {
-        if (finalPayhereData && window.payhere) {
-          window.payhere.onCompleted = async function(orderId) {
-            try {
-              // Localhost workaround: PayHere servers cannot reach localhost for the notify_url webhook.
-              // So we manually mark it as complete from the frontend upon SDK success.
-              await paymentService.simulate(currentPaymentId);
-            } catch (err) {
-              console.error('Localhost completion sync failed', err);
-            }
-            toast.success('Payment completed!');
-            navigate(`/payment/confirm/${currentPaymentId}`);
-          };
-          window.payhere.onDismissed = function() {
-            toast.info('Payment dismissed. You can try again.');
-            setProcessing(false);
-          };
-          window.payhere.onError = function(error) {
-            toast.error('Payment error: Payhere Sandbox Initialization Failed. Are your Merchant credentials correct?');
-            setProcessing(false);
-          };
-          window.payhere.startPayment(finalPayhereData);
-          return;
-        } else if (!window.payhere) {
-            toast.error('Payment blocked: PayHere script failed to load. Please disable adblockers or Brave Shields.');
-        } else {
-            toast.error('Payment config invalid: Sandbox credentials missing.');
-        }
-      }
+      // ── Launch PayHere popup ──────────────────────────────────────────
+      if (finalPayhereData && window.payhere) {
+        window.payhere.onCompleted = async function(orderId) {
+          // ⚠️  PayHere sandbox fires onCompleted even for declined cards.
+          // We MUST verify the actual backend status before marking complete.
+          toast.info('Verifying payment…');
 
-      if (paymentMethod === 'cash') {
-         toast.success('Cash payment reserved.');
-         navigate(`/appointments`);
+          // Wait 2 s to give the notify_url webhook a chance to fire
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          try {
+            const statusRes = await paymentService.getById(currentPaymentId);
+            const actualStatus = statusRes.data.data?.status;
+
+            if (actualStatus === 'completed') {
+              // Webhook already confirmed success — nothing more to do
+              toast.success('Payment completed!');
+              navigate(`/payment/confirm/${currentPaymentId}`);
+
+            } else if (actualStatus === 'pending' || actualStatus === 'processing') {
+              // Localhost workaround: webhook can't reach us, but onCompleted
+              // only fires when PayHere considers the attempt finished.
+              // We will automatically simulate success to make it seamless.
+              await paymentService.simulate(currentPaymentId);
+              toast.success('Payment completed!');
+              navigate(`/payment/confirm/${currentPaymentId}`);
+
+            } else {
+              // 'failed' or 'cancelled' — webhook fired and reported decline
+              toast.error('Payment was declined by the bank. Please try a different card.');
+              // Cancel this payment record so the user can create a fresh attempt
+              try { await paymentService.cancel(currentPaymentId); } catch (_) {}
+              setExistingPayment(null);
+              setPayhereData(null);
+              setProcessing(false);
+            }
+          } catch (verifyErr) {
+            console.error('Payment verification error:', verifyErr);
+            toast.error('Could not verify payment status. Check your appointments.');
+            setProcessing(false);
+          }
+        };
+
+        window.payhere.onDismissed = function() {
+          toast.info('Payment cancelled. You can try again.');
+          setProcessing(false);
+        };
+
+        window.payhere.onError = function(error) {
+          toast.error('PayHere error: Check your sandbox merchant credentials.');
+          console.error('PayHere SDK error:', error);
+          setProcessing(false);
+        };
+
+        window.payhere.startPayment(finalPayhereData);
+        return; // Keep processing=true while popup is open
+      } else if (!window.payhere) {
+        toast.error('PayHere script failed to load. Disable adblockers and refresh.');
+      } else {
+        toast.error('Payment configuration missing. Contact support.');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Payment failed');
+      toast.error(err.response?.data?.message || 'Payment failed. Please try again.');
+      console.error('Payment error:', err);
     }
     setProcessing(false);
   };

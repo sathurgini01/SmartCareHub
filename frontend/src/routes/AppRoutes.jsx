@@ -41,6 +41,8 @@ import AdminAiLogs            from '../pages/admin/AdminAiLogs';
 // Doctor & Admin Portal Components - Core
 import AdminProfilePage from '../pages/admin/AdminProfilePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import AdminAppointmentsPage from '../pages/admin/AdminAppointmentsPage';
+import AdminPaymentsPage from '../pages/admin/AdminPaymentsPage';
 import AllDoctorsPage from '../pages/admin/AllDoctorsPage';
 import VerifyDoctorsPage from '../pages/admin/VerifyDoctorsPage';
 import AvailabilityPage from '../pages/doctor/AvailabilityPage';
@@ -113,6 +115,8 @@ export default function AppRoutes() {
 
       {/* ====== Admin Portal Routes ====== */}
       <Route path="/admin/dashboard" element={<ProtectedRoute role="admin"><AdminDashboardPage /></ProtectedRoute>} />
+      <Route path="/admin/appointments" element={<ProtectedRoute role="admin"><AdminAppointmentsPage /></ProtectedRoute>} />
+      <Route path="/admin/payments" element={<ProtectedRoute role="admin"><AdminPaymentsPage /></ProtectedRoute>} />
       <Route path="/admin/all-doctors" element={<ProtectedRoute role="admin"><AllDoctorsPage /></ProtectedRoute>} />
       <Route path="/admin/verify-doctors" element={<ProtectedRoute role="admin"><VerifyDoctorsPage /></ProtectedRoute>} />
       <Route path="/admin/profile" element={<ProtectedRoute role="admin"><AdminProfilePage /></ProtectedRoute>} />

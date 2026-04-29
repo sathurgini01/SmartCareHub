@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: '/patient/symptom-checker', label: 'AI Symptom', icon: 'AI', desc: 'Check symptoms' },
   { to: '/prescriptions',label: 'Prescriptions', icon: '💊', desc: 'Your medicines' },
   { to: '/appointments', label: 'Appointments',  icon: '📅', desc: 'Bookings' },
+  { to: '/payment-history', label: 'Payment History', icon: '💳', desc: 'Past transactions' },
   { to: '/upload-report',label: 'Upload Report', icon: '📤', desc: 'Medical files' },
 ];
 
@@ -255,6 +256,7 @@ const Layout = ({ children }) => {
                       { icon: 'AI', label: 'AI Symptom Checker', action: () => { navigate('/patient/symptom-checker'); setDropdownOpen(false); } },
                       { icon: '💊', label: 'Prescriptions', action: () => { navigate('/prescriptions'); setDropdownOpen(false); } },
                       { icon: '📅', label: 'Appointments', action: () => { navigate('/appointments'); setDropdownOpen(false); } },
+                      { icon: '💳', label: 'Payment History', action: () => { navigate('/payment-history'); setDropdownOpen(false); } },
                       { icon: '📤', label: 'Upload Report', action: () => { navigate('/upload-report'); setDropdownOpen(false); } },
                     ].map(({ icon, label, action }) => (
                       <button

@@ -41,17 +41,17 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 5011;
 
-const startServer = async () => {
-  await connectDB();
-  
-  app.listen(PORT, () => {
-    console.log(`💳 Payment Service running on port ${PORT}`);
-    console.log(`   Health: http://localhost:${PORT}/health`);
-    console.log(`   API:    http://localhost:${PORT}/api/payments`);
-    console.log(`   PayHere: ${process.env.PAYHERE_SANDBOX === 'true' ? 'SANDBOX' : 'PRODUCTION'} mode`);
-  });
-};
+// Start HTTP server immediately so the port is bound right away
+app.listen(PORT, () => {
+  console.log(`💳 Payment Service running on port ${PORT}`);
+  console.log(`   Health: http://localhost:${PORT}/health`);
+  console.log(`   API:    http://localhost:${PORT}/api/payments`);
+  console.log(`   PayHere: ${process.env.PAYHERE_SANDBOX === 'true' ? 'SANDBOX' : 'PRODUCTION'} mode`);
+});
 
-startServer();
+// Connect to DB after server starts (non-blocking)
+connectDB().catch((err) => {
+  console.error('Initial DB connect failed, will retry automatically:', err.message);
+});

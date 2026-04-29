@@ -17,6 +17,7 @@ function Navbar() {
   const patientCoreLinks = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/appointments', label: 'Book Appointment' },
+    { to: '/payment-history', label: 'Payment History' },
     { to: '/patient/symptom-checker', label: 'AI Symptom Checker' },
     { to: '/patient/notifications', label: 'Notifications' },
   ];

@@ -3,7 +3,7 @@ const TransactionLog = require('../models/TransactionLog');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 
-const APPOINTMENT_SERVICE_URL = process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5001';
+
 
 // Helper: Create a transaction log entry
 const createTransactionLog = async (payment, action, previousStatus, performedBy, metadata = {}) => {
@@ -27,6 +27,7 @@ const createTransactionLog = async (payment, action, previousStatus, performedBy
 // Helper: Update appointment payment status via inter-service call
 const updateAppointmentPaymentStatus = async (appointmentId, paymentId, paymentStatus) => {
   try {
+    const APPOINTMENT_SERVICE_URL = process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5003';
     await axios.put(
       `${APPOINTMENT_SERVICE_URL}/api/appointments/${appointmentId}/payment-status`,
       { paymentId, paymentStatus }
@@ -38,9 +39,10 @@ const updateAppointmentPaymentStatus = async (appointmentId, paymentId, paymentS
 
 // Helper: Generate PayHere hash
 const generatePayHereHash = (merchantId, orderId, amount, currency, merchantSecret) => {
-  const hashedSecret = CryptoJS.MD5(merchantSecret).toString().toUpperCase();
-  const amountFormatted = parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(',', '');
-  const hashStr = merchantId + orderId + amountFormatted + currency + hashedSecret;
+  const secret = (merchantSecret || '').trim();
+  const hashedSecret = CryptoJS.MD5(secret).toString().toUpperCase();
+  const amountFormatted = parseFloat(amount).toFixed(2);
+  const hashStr = (merchantId || '').trim() + (orderId || '').trim() + amountFormatted + (currency || '').trim() + hashedSecret;
   return CryptoJS.MD5(hashStr).toString().toUpperCase();
 };
 

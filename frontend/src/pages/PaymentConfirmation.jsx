@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import paymentService from '../services/paymentService';
-import { formatCurrency, formatDate, formatTime } from '../utils/formatters';
-import { FiCheckCircle, FiXCircle, FiClock, FiCalendar, FiArrowRight } from 'react-icons/fi';
+import { formatCurrency, formatDate } from '../utils/formatters';
+import { FiCheckCircle, FiXCircle, FiClock, FiArrowRight, FiRefreshCw } from 'react-icons/fi';
 import './PaymentConfirmation.css';
 
 const PaymentConfirmation = () => {
   const { paymentId } = useParams();
+  const navigate = useNavigate();
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +44,7 @@ const PaymentConfirmation = () => {
 
   const isSuccess = payment.status === 'completed';
   const isPending = payment.status === 'pending' || payment.status === 'processing';
+  const isFailed  = payment.status === 'failed' || payment.status === 'cancelled';
 
   return (
     <div className="confirmation-page page-wrapper">
@@ -59,8 +61,8 @@ const PaymentConfirmation = () => {
             {isSuccess
               ? 'Your appointment has been confirmed and payment received.'
               : isPending
-              ? 'Your payment is being processed. Please wait.'
-              : 'Something went wrong. Please try again.'}
+              ? 'Your payment is being processed. Please wait a moment.'
+              : 'Your payment was declined or cancelled. Please try again with a different card.'}
           </p>
 
           <div className="receipt-card">
@@ -99,18 +101,40 @@ const PaymentConfirmation = () => {
             </div>
 
             <div className="receipt-total">
-              <span>Total Paid</span>
+              <span>Total {isSuccess ? 'Paid' : 'Amount'}</span>
               <strong>{formatCurrency(payment.amount, payment.currency)}</strong>
             </div>
           </div>
 
           <div className="confirm-actions">
-            <Link to="/appointments" className="btn btn-primary">
-              View My Appointments <FiArrowRight />
-            </Link>
-            <Link to="/doctors" className="btn btn-secondary">
-              Book Another
-            </Link>
+            {isSuccess && (
+              <Link to="/appointments" className="btn btn-primary">
+                View My Appointments <FiArrowRight />
+              </Link>
+            )}
+            {isFailed && (
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate(`/payment/${payment.appointmentId}`)}
+              >
+                <FiRefreshCw /> Try Again
+              </button>
+            )}
+            {(isSuccess || isFailed) && (
+              <Link to="/appointments" className="btn btn-secondary">
+                {isFailed ? 'Back to Appointments' : 'Book Another'}
+              </Link>
+            )}
+            {isPending && (
+              <>
+                <button className="btn btn-secondary" onClick={fetchPayment}>
+                  <FiRefreshCw /> Check Status
+                </button>
+                <Link to="/appointments" className="btn btn-ghost">
+                  Back to Appointments
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -119,3 +143,5 @@ const PaymentConfirmation = () => {
 };
 
 export default PaymentConfirmation;
+
+

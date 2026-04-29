@@ -139,3 +139,39 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ---- Added for new Admin Pages ---- */
+.count-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.count-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.count-card strong {
+  font-size: 24px;
+  font-weight: 800;
+  margin-top: 12px;
+  color: var(--text-primary);
+}
+
+.count-card .badge {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.admin-table-container {
+  overflow-x: auto;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}

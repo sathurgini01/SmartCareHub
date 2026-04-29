@@ -11,6 +11,7 @@ const PatientSidebar = () => (
         <li><NavLink to="/upload-report">Upload Report</NavLink></li>
         <li><NavLink to="/prescriptions">Prescriptions</NavLink></li>
         <li><NavLink to="/appointments">Book Appointment</NavLink></li>
+        <li><NavLink to="/payment-history">Payment History</NavLink></li>
       </ul>
     </nav>
   </aside>

@@ -4,16 +4,24 @@
   "description": "SmartCareHub Backend",
   "main": "index.js",
   "scripts": {
-    "start": "node backend/auth-service/src/server.js",
-    "dev": "nodemon backend/auth-service/src/server.js",
-    "dev:auth": "nodemon backend/auth-service/src/server.js",
-    "dev:patient": "nodemon backend/patient-service/server.js"
+    "start:auth": "cd backend/auth-service && node src/server.js",
+    "start:patient": "cd backend/patient-service && node server.js",
+    "start:appointment": "cd backend/appointment-service && node server.js",
+    "start:doctor": "cd backend/doctor-service && node src/server.js",
+    "start:notification": "cd backend/notification-service && node src/server.js",
+    "start:telemedicine": "cd backend/telemedicine-service && node src/server.js",
+    "start:symptom": "cd backend/ai-symptom-service && node src/server.js",
+    "start:payment": "cd backend/payment-service && node server.js",
+    "start:gateway": "cd backend/api-gateway && node server.js",
+    "start:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently --kill-others-on-fail --prefix \"[{name}]\" --names \"auth,patient,appt,doctor,notif,telemed,symptom,payment,gateway,frontend\" \"npm run start:auth\" \"npm run start:patient\" \"npm run start:appointment\" \"npm run start:doctor\" \"npm run start:notification\" \"npm run start:telemedicine\" \"npm run start:symptom\" \"npm run start:payment\" \"npm run start:gateway\" \"npm run start:frontend\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.14"
   },
   "dependencies": {

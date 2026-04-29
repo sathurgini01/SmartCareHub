@@ -4,6 +4,7 @@ import PageBanner from '../../components/common/PageBanner';
 import ShellLayout from '../../components/common/ShellLayout';
 import { getAdminDashboard } from '../../services/adminService';
 import { adminNavItems } from '../../utils/navigation';
+import '../AdminDashboard.css';
 
 function CountCard({ status, count }) {
   const className =
@@ -72,6 +73,26 @@ export default function AdminDashboardPage() {
         <CountCard status="pending" count={counts.pending} />
         <CountCard status="rejected" count={counts.rejected} />
         <CountCard status="approved" count={counts.approved} />
+      </div>
+
+      <div style={{ marginTop: '32px' }}>
+        <h3 style={{ marginBottom: '16px', color: '#f1f5f9' }}>Platform Management</h3>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div className="card" style={{ flex: '1', minWidth: '250px', padding: '24px' }}>
+            <h4 style={{ marginBottom: '8px', color: '#fff' }}>Appointments</h4>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '16px' }}>View all patient appointments, check status, and force-cancel if necessary.</p>
+            <button className="btn btn-secondary" onClick={() => navigate('/admin/appointments')} style={{ width: '100%' }}>
+              Manage Appointments
+            </button>
+          </div>
+          <div className="card" style={{ flex: '1', minWidth: '250px', padding: '24px' }}>
+            <h4 style={{ marginBottom: '8px', color: '#fff' }}>Payments & Revenue</h4>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '16px' }}>Track platform revenue, monitor transactions, and issue refunds.</p>
+            <button className="btn btn-secondary" onClick={() => navigate('/admin/payments')} style={{ width: '100%' }}>
+              Manage Payments
+            </button>
+          </div>
+        </div>
       </div>
     </ShellLayout>
   );

@@ -94,6 +94,11 @@ const Dashboard = () => {
           <h3>Telemedicine</h3>
           <p>View online session history</p>
         </Link>
+        <Link to="/payment-history" className="service-card service-card-reports">
+          <span className="service-icon service-emoji">💳</span>
+          <h3>Payment History</h3>
+          <p>View past transactions</p>
+        </Link>
       </div>
 
       {recentReports.length > 0 && (

@@ -27,7 +27,7 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
-      const res = await api.get('/api/patients/me');
+      const res = await api.get('/patients/me');
       setProfile(res.data);
       populateForm(res.data);
     } catch {
@@ -83,7 +83,7 @@ const Profile = () => {
         medicalHistory: formData.medicalHistory,
       };
 
-      const res = await api.put('/api/patients/me', payload);
+      const res = await api.put('/patients/me', payload);
       setProfile(res.data.patient || res.data);
       setEditing(false);
       setSuccess('Profile updated successfully.');
@@ -103,7 +103,7 @@ const Profile = () => {
       return;
 
     try {
-      await api.delete('/api/patients/me');
+      await api.delete('/patients/me');
       logout();
     } catch {
       setError('Failed to delete account. Please try again.');

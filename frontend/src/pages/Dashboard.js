@@ -21,8 +21,8 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const [reportsRes, prescriptionsRes] = await Promise.allSettled([
-        api.get('/api/patients/reports'),
-        api.get('/api/patients/prescriptions'),
+        api.get('/patients/reports'),
+        api.get('/patients/prescriptions'),
       ]);
 
       const reports =
