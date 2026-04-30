@@ -125,6 +125,18 @@ export async function getDoctorDashboard(_doctorId) {
   };
 }
 
+export async function getAssignedReports() {
+  const response = await api.get('/patients/doctor/reports');
+  return response.data || [];
+}
+
+export async function fetchReportFile(reportId) {
+  const response = await api.get(`/patients/reports/${reportId}/download`, {
+    responseType: 'blob'
+  });
+  return response.data;
+}
+
 export async function updateDoctorProfile(_doctorId, updates) {
   const { token } = getAuth();
   const doctorId = await resolveDoctorId(token);

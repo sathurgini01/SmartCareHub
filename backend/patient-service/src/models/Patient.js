@@ -4,6 +4,12 @@ const reportSchema = new mongoose.Schema({
   fileName: { type: String, required: true },
   filePath: { type: String, required: true },
   description: { type: String, default: '' },
+  patientUserId: { type: String, default: '' },
+  patientName: { type: String, default: '' },
+  doctorId: { type: String, default: '' },
+  doctorName: { type: String, default: '' },
+  doctorEmail: { type: String, default: '' },
+  fileType: { type: String, default: '' },
   uploadedAt: { type: Date, default: Date.now },
 });
 

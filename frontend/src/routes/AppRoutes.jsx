@@ -6,11 +6,11 @@ import Layout from '../components/Layout';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
-import Dashboard from '../pages/Dashboard';
+import Dashboard from '../pages/Dashboard.jsx';
 import Profile from '../pages/Profile';
 import Prescriptions from '../pages/Prescriptions';
 import Appointments from '../pages/Appointments';
-import UploadReport from '../pages/UploadReport';
+import UploadReport from '../pages/UploadReport.js';
 import NotFound from '../pages/NotFound';
 
 // Appointment Service Components

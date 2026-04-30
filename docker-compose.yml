@@ -182,7 +182,7 @@ services:
       - smartcare-net
     environment:
       PORT: 5001
-      MONGO_URI: mongodb+srv://leodasco9_db_user:smartcarehub@cluster0.czapmpf.mongodb.net/user?appName=Cluster0
+      MONGO_URI: mongodb+srv://leodasco9_db_user:smartcarehub@cluster0.czapmpf.mongodb.net/auth-service?appName=Cluster0
       JWT_SECRET: ${JWT_SECRET:-SmartCareHub_JWT_Secret_2026}
       NODE_ENV: production
     depends_on:

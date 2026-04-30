@@ -52,7 +52,12 @@ export default function ShellLayout({ children }) {
   const navigate = useNavigate();
   const { user, logoutUser } = useAuth();
 
-  const profilePath = user?.role === 'doctor' ? '/doctor/profile' : '/admin/profile';
+  const profilePath =
+    user?.role === 'doctor'
+      ? '/doctor/profile'
+      : user?.role === 'admin'
+        ? '/admin/profile'
+        : '/profile';
 
   return (
     <div className="shell-layout">
@@ -80,7 +85,7 @@ export default function ShellLayout({ children }) {
               <AppIcon type="user" />
             </span>
             <span className="profile-trigger-copy">
-              <strong>{user?.fullName}</strong>
+              <strong>{user?.fullName || user?.name || 'SmartCare user'}</strong>
               <small>{user?.role}</small>
             </span>
           </button>

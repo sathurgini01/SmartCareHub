@@ -3,24 +3,35 @@ import Badge from '../../components/common/Badge';
 import DataTable from '../../components/common/DataTable';
 import PageBanner from '../../components/common/PageBanner';
 import ShellLayout from '../../components/common/ShellLayout';
-import { useAuth } from '../../context/AuthContext';
-import { getDoctorDashboard } from '../../services/doctorService';
-import { doctorNavItems } from '../../utils/navigation';
+import { fetchReportFile, getAssignedReports } from '../../services/doctorService';
 
 export default function ReportsPage() {
-  const { user } = useAuth();
   const [reports, setReports] = useState([]);
 
   useEffect(() => {
-    getDoctorDashboard(user.id).then((data) => setReports(data.reports));
-  }, [user.id]);
+    getAssignedReports().then((data) => setReports(data));
+  }, []);
+
+  async function handleDownload(report) {
+    const blob = await fetchReportFile(report._id);
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = report.fileName || 'report';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  }
+
+  async function handlePreview(report) {
+    const blob = await fetchReportFile(report._id);
+    const blobUrl = window.URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank', 'noopener,noreferrer');
+  }
 
   return (
-    <ShellLayout
-      title="Patient Uploaded Reports"
-      subtitle="Review lab reports, scan reports, prescription uploads, and medical history files."
-      navItems={doctorNavItems}
-    >
+    <ShellLayout>
       <PageBanner
         eyebrow="Report Viewer"
         title="Patient uploaded reports"
@@ -30,24 +41,24 @@ export default function ReportsPage() {
       <section className="card">
         <div className="section-heading">
           <h2>Reports View</h2>
-          <p>Preview and download patient-uploaded files in a clean, professional table.</p>
+          <p>Preview and download files that patients assigned directly to you.</p>
         </div>
         <DataTable
-          columns={['Patient', 'Category', 'File Type', 'Upload Date', 'File Name', 'Actions']}
+          columns={['Patient', 'Doctor', 'File Type', 'Upload Date', 'File Name', 'Actions']}
           rows={reports}
           emptyTitle="No reports available"
-          emptyText="Patient uploads will appear here once available."
+          emptyText="Patient uploads assigned to you will appear here once available."
           renderRow={(item) => (
-            <tr key={item.id}>
+            <tr key={item._id}>
               <td>{item.patientName}</td>
-              <td>{item.category}</td>
-              <td><Badge status={item.fileType.toLowerCase()} /></td>
-              <td>{item.uploadDate}</td>
+              <td>{item.doctorName}</td>
+              <td><Badge status={(item.fileType || 'file').toLowerCase()} /></td>
+              <td>{new Date(item.uploadedAt).toLocaleDateString()}</td>
               <td>{item.fileName}</td>
               <td>
                 <div className="button-row">
-                  <button className="btn btn-primary">Preview</button>
-                  <button className="btn btn-secondary">Download</button>
+                  <button className="btn btn-primary" onClick={() => handlePreview(item)}>Preview</button>
+                  <button className="btn btn-secondary" onClick={() => handleDownload(item)}>Download</button>
                 </div>
               </td>
             </tr>

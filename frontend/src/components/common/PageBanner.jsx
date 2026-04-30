@@ -1,6 +1,8 @@
 const bannerImages = {
   'doctor-dashboard':
     'https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1600&q=80',
+  'patient-dashboard':
+    'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1600&q=80',
   'doctor-profile':
     'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=1600&q=80',
   availability:

@@ -40,6 +40,12 @@ router.post(
 // Get own reports
 router.get('/reports', verifyToken, authorizeRoles('patient'), patientController.getReports);
 
+// Doctor reports assigned by patients
+router.get('/doctor/reports', verifyToken, authorizeRoles('doctor', 'admin'), patientController.getAssignedDoctorReports);
+
+// Download report file
+router.get('/reports/:reportId/download', verifyToken, authorizeRoles('patient', 'doctor', 'admin'), patientController.downloadReport);
+
 // Get own prescriptions
 router.get(
   '/prescriptions',

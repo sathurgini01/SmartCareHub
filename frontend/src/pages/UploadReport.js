@@ -1,32 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 const ACCEPTED_TYPES = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
 const MAX_MB = 5;
 
+function extractDoctors(payload) {
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload)) return payload;
+  return [];
+}
+
 const UploadReport = () => {
   const { user } = useAuth();
   const [file, setFile] = useState(null);
   const [description, setDescription] = useState('');
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [reports, setReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(true);
 
   useEffect(() => {
-    if (user) fetchReports();
+    if (user) {
+      fetchReports();
+      fetchDoctors();
+    }
   }, [user]);
+
+  const selectedDoctor = doctors.find((doctor) => (doctor._id || doctor.id) === selectedDoctorId);
 
   const fetchReports = async () => {
     try {
       const res = await api.get('/patients/reports');
-      setReports(res.data);
+      setReports(res.data || []);
     } catch {
-      // Non-critical — just don't show the list
+      setReports([]);
     } finally {
       setReportsLoading(false);
+    }
+  };
+
+  const fetchDoctors = async () => {
+    try {
+      const res = await api.get('/doctors/public');
+      setDoctors(extractDoctors(res.data));
+    } catch {
+      setDoctors([]);
+    } finally {
+      setLoadingDoctors(false);
     }
   };
 
@@ -40,6 +65,7 @@ const UploadReport = () => {
       setFile(null);
       return;
     }
+
     setError('');
     setFile(selected);
   };
@@ -49,6 +75,10 @@ const UploadReport = () => {
     setError('');
     setSuccess('');
 
+    if (!selectedDoctor) {
+      setError('Please select an active doctor first.');
+      return;
+    }
     if (!file) {
       setError('Please select a file to upload.');
       return;
@@ -61,21 +91,23 @@ const UploadReport = () => {
     const formData = new FormData();
     formData.append('report', file);
     formData.append('description', description.trim());
+    formData.append('doctorId', selectedDoctor._id || selectedDoctor.id);
+    formData.append('doctorName', selectedDoctor.name || selectedDoctor.fullName || 'Doctor');
+    formData.append('doctorEmail', selectedDoctor.email || '');
     if (user?.id) formData.append('patientId', user.id);
 
     setLoading(true);
     try {
       await api.post('/patients/upload-report', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setSuccess('Report uploaded successfully.');
+      setSuccess('Report uploaded successfully and assigned to the selected doctor.');
       setFile(null);
       setDescription('');
-      // Refresh list
+      setSelectedDoctorId('');
       fetchReports();
     } catch (err) {
-      const msg =
-        err.response?.data?.error || 'Upload failed. Please try again.';
+      const msg = err.response?.data?.error || 'Upload failed. Please try again.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -86,19 +118,51 @@ const UploadReport = () => {
     <div className="upload-report">
       <h1 style={{ marginBottom: '24px' }}>Upload Medical Report</h1>
 
-      {/* Upload Form */}
       <div className="card" style={{ marginBottom: '24px' }}>
         <h2 style={{ marginBottom: '20px', fontSize: '1.1rem', color: '#94a3b8' }}>
-          UPLOAD NEW REPORT
+          ASSIGN DOCTOR AND UPLOAD REPORT
         </h2>
 
         {error && <div className="alert-error">{error}</div>}
         {success && <div className="alert-success">{success}</div>}
 
         <form onSubmit={handleSubmit}>
+          <label className="form-label">Choose Active Doctor</label>
+          {loadingDoctors ? (
+            <div className="loading" style={{ minHeight: '80px' }}>
+              <div className="spinner" />
+            </div>
+          ) : doctors.length === 0 ? (
+            <div className="alert-error">No approved doctors are available right now.</div>
+          ) : (
+            <div className="patient-picker-grid" style={{ marginBottom: '18px' }}>
+              {doctors.map((doctor) => {
+                const doctorKey = doctor._id || doctor.id;
+                const isSelected = selectedDoctorId === doctorKey;
+                return (
+                  <button
+                    key={doctorKey}
+                    type="button"
+                    className="patient-pick-card"
+                    onClick={() => setSelectedDoctorId(doctorKey)}
+                    style={{
+                      borderColor: isSelected ? '#16a34a' : '#28324a',
+                      boxShadow: isSelected ? '0 10px 22px rgba(22, 163, 74, 0.16)' : 'none'
+                    }}
+                  >
+                    <strong>{doctor.name || doctor.fullName}</strong>
+                    <span>{doctor.specialization || 'General Medicine'}</span>
+                    <small>{doctor.hospital || doctor.email}</small>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <label className="form-label">Select Report File</label>
           <div
             style={{
+              position: 'relative',
               border: `2px dashed ${file ? '#10b981' : '#334155'}`,
               borderRadius: '10px',
               padding: '24px',
@@ -106,27 +170,25 @@ const UploadReport = () => {
               marginBottom: '16px',
               cursor: 'pointer',
               transition: 'border-color 0.3s',
-              background: '#0f172a',
+              background: '#0f172a'
             }}
           >
             {file ? (
               <div>
-                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</div>
-                <p style={{ color: '#10b981', fontWeight: 600, margin: 0 }}>
-                  {file.name}
-                </p>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>OK</div>
+                <p style={{ color: '#10b981', fontWeight: 600, margin: 0 }}>{file.name}</p>
                 <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>
                   {(file.size / (1024 * 1024)).toFixed(2)} MB
                 </p>
               </div>
             ) : (
               <div>
-                <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>📁</div>
+                <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>FILE</div>
                 <p style={{ color: '#94a3b8', margin: '0 0 8px' }}>
                   Click to select or drag a file here
                 </p>
                 <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>
-                  PDF, DOC, DOCX, JPG, PNG — max {MAX_MB} MB
+                  PDF, JPG, PNG - max {MAX_MB} MB
                 </p>
               </div>
             )}
@@ -141,7 +203,7 @@ const UploadReport = () => {
                 height: '100%',
                 top: 0,
                 left: 0,
-                cursor: 'pointer',
+                cursor: 'pointer'
               }}
             />
           </div>
@@ -152,7 +214,7 @@ const UploadReport = () => {
             onChange={(e) => setDescription(e.target.value)}
             className="form-input"
             rows={4}
-            placeholder="Describe the report (e.g. Blood test results — 12 April 2026)…"
+            placeholder="Describe the report (e.g. Blood test results - 12 April 2026)"
             required
           />
 
@@ -163,7 +225,7 @@ const UploadReport = () => {
               className="btn btn-primary"
               style={{ padding: '0.65rem 1.8rem' }}
             >
-              {loading ? 'Uploading…' : '📤 Upload Report'}
+              {loading ? 'Uploading...' : 'Upload Report'}
             </button>
             {file && (
               <button
@@ -181,7 +243,6 @@ const UploadReport = () => {
         </form>
       </div>
 
-      {/* Uploaded Reports List */}
       <div className="card">
         <h2 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#94a3b8' }}>
           MY UPLOADED REPORTS
@@ -193,7 +254,7 @@ const UploadReport = () => {
           </div>
         ) : reports.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>📂</div>
+            <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>FOLDER</div>
             <p style={{ margin: 0 }}>No reports uploaded yet.</p>
           </div>
         ) : (
@@ -202,18 +263,20 @@ const UploadReport = () => {
               <thead>
                 <tr>
                   <th>#</th>
+                  <th>Doctor</th>
                   <th>File Name</th>
                   <th>Description</th>
                   <th>Uploaded On</th>
                 </tr>
               </thead>
               <tbody>
-                {reports.map((r, idx) => (
-                  <tr key={r._id || idx}>
+                {reports.map((report, idx) => (
+                  <tr key={report._id || idx}>
                     <td>{idx + 1}</td>
-                    <td style={{ fontWeight: 500 }}>{r.fileName}</td>
-                    <td style={{ color: '#94a3b8' }}>{r.description || '—'}</td>
-                    <td>{new Date(r.uploadedAt).toLocaleDateString()}</td>
+                    <td>{report.doctorName || 'Not assigned'}</td>
+                    <td style={{ fontWeight: 500 }}>{report.fileName}</td>
+                    <td style={{ color: '#94a3b8' }}>{report.description || '-'}</td>
+                    <td>{new Date(report.uploadedAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

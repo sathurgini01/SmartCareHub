@@ -1,5 +1,41 @@
+const path = require('path');
 const Patient = require('../models/Patient');
 const DOCTOR_SERVICE_URL = (process.env.DOCTOR_SERVICE_URL || 'http://localhost:5002').replace(/\/$/, '');
+
+async function ensurePatientProfile(user) {
+  let patient = await Patient.findOne({ userId: user.id });
+  if (patient) {
+    return patient;
+  }
+
+  patient = new Patient({
+    userId: user.id,
+    fullName: user.name || user.fullName || user.email?.split('@')[0] || 'Patient',
+    email: String(user.email || '').toLowerCase().trim(),
+    phone: '',
+    address: '',
+    medicalHistory: ''
+  });
+
+  await patient.save();
+  return patient;
+}
+
+function normalizeReport(patient, report) {
+  return {
+    _id: report._id,
+    fileName: report.fileName,
+    description: report.description || '',
+    uploadedAt: report.uploadedAt,
+    patientUserId: report.patientUserId || patient.userId,
+    patientName: report.patientName || patient.fullName,
+    doctorId: report.doctorId || '',
+    doctorName: report.doctorName || '',
+    doctorEmail: report.doctorEmail || '',
+    fileType: report.fileType || path.extname(report.fileName || '').replace('.', '').toUpperCase(),
+    downloadPath: `/api/patients/reports/${report._id}/download`
+  };
+}
 
 // ── Patient: Create profile ──────────────────────────────────────────────────
 exports.createProfile = async (req, res) => {
@@ -37,10 +73,7 @@ exports.createProfile = async (req, res) => {
 // ── Patient: Get own profile ─────────────────────────────────────────────────
 exports.getMyProfile = async (req, res) => {
   try {
-    const patient = await Patient.findOne({ userId: req.user.id });
-    if (!patient) {
-      return res.status(404).json({ error: 'Profile not found.' });
-    }
+    const patient = await ensurePatientProfile(req.user);
     res.json(patient);
   } catch (error) {
     console.error('getMyProfile error:', error);
@@ -110,16 +143,34 @@ exports.uploadReport = async (req, res) => {
       return res.status(404).json({ error: 'Profile not found.' });
     }
 
+    const doctorId = String(req.body.doctorId || '').trim();
+    const doctorName = String(req.body.doctorName || '').trim();
+    const doctorEmail = String(req.body.doctorEmail || '').trim().toLowerCase();
+
+    if (!doctorId || !doctorName || !doctorEmail) {
+      return res.status(400).json({ error: 'Please select an active doctor before uploading.' });
+    }
+
     const report = {
       fileName: req.file.originalname,
       filePath: req.file.path,
       description: req.body.description?.trim() || '',
+      patientUserId: patient.userId,
+      patientName: patient.fullName,
+      doctorId,
+      doctorName,
+      doctorEmail,
+      fileType: path.extname(req.file.originalname || '').replace('.', '').toUpperCase(),
     };
 
     patient.reports.push(report);
     await patient.save();
+    const savedReport = patient.reports[patient.reports.length - 1];
 
-    res.json({ message: 'Report uploaded successfully.', report });
+    res.json({
+      message: 'Report uploaded successfully.',
+      report: normalizeReport(patient, savedReport)
+    });
   } catch (error) {
     console.error('uploadReport error:', error);
     res.status(500).json({ error: 'Server error.' });
@@ -129,13 +180,62 @@ exports.uploadReport = async (req, res) => {
 // ── Patient: Get own reports ─────────────────────────────────────────────────
 exports.getReports = async (req, res) => {
   try {
-    const patient = await Patient.findOne({ userId: req.user.id });
-    if (!patient) {
-      return res.status(404).json({ error: 'Profile not found.' });
-    }
-    res.json(patient.reports || []);
+    const patient = await ensurePatientProfile(req.user);
+    res.json((patient.reports || []).map((report) => normalizeReport(patient, report)));
   } catch (error) {
     console.error('getReports error:', error);
+    res.status(500).json({ error: 'Server error.' });
+  }
+};
+
+exports.getAssignedDoctorReports = async (req, res) => {
+  try {
+    const doctorEmail = String(req.user.email || '').trim().toLowerCase();
+    if (!doctorEmail) {
+      return res.status(400).json({ error: 'Doctor email is missing from the authenticated session.' });
+    }
+
+    const patients = await Patient.find({ 'reports.doctorEmail': doctorEmail }).select('fullName userId reports');
+    const reports = patients.flatMap((patient) =>
+      (patient.reports || [])
+        .filter((report) => String(report.doctorEmail || '').trim().toLowerCase() === doctorEmail)
+        .map((report) => normalizeReport(patient, report))
+    );
+
+    reports.sort((first, second) => new Date(second.uploadedAt) - new Date(first.uploadedAt));
+    res.json(reports);
+  } catch (error) {
+    console.error('getAssignedDoctorReports error:', error);
+    res.status(500).json({ error: 'Server error.' });
+  }
+};
+
+exports.downloadReport = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const role = req.user?.role;
+    const doctorEmail = String(req.user?.email || '').trim().toLowerCase();
+
+    const patientQuery =
+      role === 'patient'
+        ? { userId: req.user.id, 'reports._id': reportId }
+        : role === 'doctor'
+          ? { 'reports._id': reportId, 'reports.doctorEmail': doctorEmail }
+          : { 'reports._id': reportId };
+
+    const patient = await Patient.findOne(patientQuery);
+    if (!patient) {
+      return res.status(404).json({ error: 'Report not found.' });
+    }
+
+    const report = patient.reports.id(reportId);
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found.' });
+    }
+
+    return res.download(report.filePath, report.fileName);
+  } catch (error) {
+    console.error('downloadReport error:', error);
     res.status(500).json({ error: 'Server error.' });
   }
 };
