@@ -1,180 +1,143 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import appointmentService from '../services/appointmentService';
 import paymentService from '../services/paymentService';
 import { formatCurrency, formatDate, formatTime, getSpecialtyIcon } from '../utils/formatters';
-import { FiCreditCard, FiShield, FiCheck, FiInfo } from 'react-icons/fi';
+import { FiShield, FiCheck, FiInfo } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import './PaymentPage.css';
 
 const PaymentPage = () => {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const [appointment, setAppointment] = useState(null);
-  const [existingPayment, setExistingPayment] = useState(null);
-  const [payhereData, setPayhereData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('payhere');
 
+  // Load appointment details
   useEffect(() => {
-    fetchData();
-  }, [appointmentId]);
-
-  const fetchData = async () => {
-    try {
-      const aptRes = await appointmentService.getById(appointmentId);
-      if (aptRes.data.success) {
-        setAppointment(aptRes.data.data);
-      }
-
-      // Check for existing payment
+    const fetchData = async () => {
       try {
-        const payRes = await paymentService.getByAppointment(appointmentId);
-        if (payRes.data.success) {
-          const pay = payRes.data.data;
-
-          // If payment is in a failed/cancelled state, cancel it so user can retry
-          if (['failed', 'cancelled'].includes(pay.status)) {
-            try { await paymentService.cancel(pay._id); } catch (_) {}
-            setLoading(false);
-            return;
-          }
-
-          setExistingPayment(pay);
-          if (payRes.data.payhereData) {
-            setPayhereData(payRes.data.payhereData);
-          }
-
-          if (pay.status === 'completed') {
-            // Verify appointment is also updated — fix stale cross-service state
-            const apt = aptRes.data.data;
-            if (apt && apt.paymentStatus !== 'paid') {
-              // Re-sync: appointment was never updated (cross-service call failed before)
-              try { await paymentService.simulate(pay._id); } catch (_) {}
+        const aptRes = await appointmentService.getById(appointmentId);
+        if (aptRes.data.success) {
+          setAppointment(aptRes.data.data);
+          
+          // Check if already paid
+          try {
+            const payRes = await paymentService.getByAppointment(appointmentId);
+            if (payRes.data.success && payRes.data.data.status === 'completed') {
+              navigate(`/payment/confirm/${payRes.data.data._id}`);
+              return;
             }
-            navigate(`/payment/confirm/${pay._id}`);
-            return;
+          } catch (e) {
+            // No payment found or error, continue to checkout
           }
         }
-      } catch (e) {
-        // No existing payment — fresh start
+      } catch (err) {
+        toast.error('Failed to load appointment details');
+        navigate('/appointments');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      toast.error('Failed to load appointment details');
-      navigate('/appointments');
-    }
-    setLoading(false);
-  };
+    };
+    fetchData();
+  }, [appointmentId, navigate]);
 
-  const handlePayHere = async () => {
+  const handlePayment = async () => {
+    if (!appointment) return;
+    
     setProcessing(true);
     try {
-      // ── Cash at Clinic: no payment record needed ──────────────────────
       if (paymentMethod === 'cash') {
         toast.success('Appointment confirmed! Please pay at the clinic.');
         navigate('/appointments');
         return;
       }
 
-      // ── PayHere: create/retrieve payment record ───────────────────────
-      let finalPayhereData = payhereData;
-      let currentPaymentId = existingPayment?._id;
+      if (paymentMethod === 'payhere') {
+        if (!window.payhere) {
+          toast.error('PayHere service not available');
+          setProcessing(false);
+          return;
+        }
 
-      if (!existingPayment) {
-        const res = await paymentService.create({
-          appointmentId,
-          amount: appointment.consultationFee,
-          currency: appointment.currency || 'LKR',
-          method: 'payhere',
-          patientName: appointment.patientName,
-          patientEmail: appointment.patientEmail,
-          patientPhone: appointment.patientPhone || '',
-          doctorName: appointment.doctorName,
-          specialty: appointment.specialty
-        });
+        let payhereData = null;
+        let paymentId = null;
 
-        if (res.data.success) {
-          setExistingPayment(res.data.data);
-          currentPaymentId = res.data.data._id;
-          finalPayhereData = res.data.payhereData;
-          setPayhereData(finalPayhereData);
+        try {
+          const res = await paymentService.create({
+            appointmentId,
+            amount: appointment.consultationFee,
+            currency: appointment.currency || 'LKR',
+            method: 'payhere',
+            patientName: appointment.patientName,
+            patientEmail: appointment.patientEmail,
+            patientPhone: '0770000000', // Mock phone
+            doctorName: appointment.doctorName,
+            specialty: appointment.specialty,
+          });
+
+          if (res.data.success && res.data.payhereData) {
+            payhereData = res.data.payhereData;
+            paymentId = res.data.data._id;
+          }
+        } catch (err) {
+          if (err.response && err.response.status === 409) {
+            const payRes = await paymentService.getByAppointment(appointmentId);
+            if (payRes.data.success && payRes.data.payhereData) {
+              payhereData = payRes.data.payhereData;
+              paymentId = payRes.data.data._id;
+            } else {
+              throw new Error('Failed to retrieve existing payment intent');
+            }
+          } else {
+            throw err;
+          }
+        }
+
+        if (payhereData) {
+          window.payhere.onCompleted = async function onCompleted(orderId) {
+            try {
+              // In dev environment, PayHere webhook cannot reach localhost.
+              // So we manually tell the backend to complete the payment.
+              await paymentService.simulate(paymentId);
+            } catch(e) {}
+            toast.success("Payment completed successfully!");
+            navigate(`/payment/confirm/${paymentId}`);
+          };
+
+          window.payhere.onDismissed = function onDismissed() {
+            toast.info("Payment dismissed");
+            setProcessing(false);
+          };
+
+          window.payhere.onError = function onError(error) {
+            toast.error("Payment Error: " + error);
+            setProcessing(false);
+          };
+
+          window.payhere.startPayment(payhereData);
+        } else {
+          toast.error('Failed to initialize payment');
+          setProcessing(false);
         }
       }
-
-      // ── Launch PayHere popup ──────────────────────────────────────────
-      if (finalPayhereData && window.payhere) {
-        window.payhere.onCompleted = async function(orderId) {
-          // ⚠️  PayHere sandbox fires onCompleted even for declined cards.
-          // We MUST verify the actual backend status before marking complete.
-          toast.info('Verifying payment…');
-
-          // Wait 2 s to give the notify_url webhook a chance to fire
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          try {
-            const statusRes = await paymentService.getById(currentPaymentId);
-            const actualStatus = statusRes.data.data?.status;
-
-            if (actualStatus === 'completed') {
-              // Webhook already confirmed success — nothing more to do
-              toast.success('Payment completed!');
-              navigate(`/payment/confirm/${currentPaymentId}`);
-
-            } else if (actualStatus === 'pending' || actualStatus === 'processing') {
-              // Localhost workaround: webhook can't reach us, but onCompleted
-              // only fires when PayHere considers the attempt finished.
-              // We will automatically simulate success to make it seamless.
-              await paymentService.simulate(currentPaymentId);
-              toast.success('Payment completed!');
-              navigate(`/payment/confirm/${currentPaymentId}`);
-
-            } else {
-              // 'failed' or 'cancelled' — webhook fired and reported decline
-              toast.error('Payment was declined by the bank. Please try a different card.');
-              // Cancel this payment record so the user can create a fresh attempt
-              try { await paymentService.cancel(currentPaymentId); } catch (_) {}
-              setExistingPayment(null);
-              setPayhereData(null);
-              setProcessing(false);
-            }
-          } catch (verifyErr) {
-            console.error('Payment verification error:', verifyErr);
-            toast.error('Could not verify payment status. Check your appointments.');
-            setProcessing(false);
-          }
-        };
-
-        window.payhere.onDismissed = function() {
-          toast.info('Payment cancelled. You can try again.');
-          setProcessing(false);
-        };
-
-        window.payhere.onError = function(error) {
-          toast.error('PayHere error: Check your sandbox merchant credentials.');
-          console.error('PayHere SDK error:', error);
-          setProcessing(false);
-        };
-
-        window.payhere.startPayment(finalPayhereData);
-        return; // Keep processing=true while popup is open
-      } else if (!window.payhere) {
-        toast.error('PayHere script failed to load. Disable adblockers and refresh.');
-      } else {
-        toast.error('Payment configuration missing. Contact support.');
-      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Payment failed. Please try again.');
-      console.error('Payment error:', err);
+      toast.error('Payment processing failed.');
+      setProcessing(false);
     }
-    setProcessing(false);
   };
 
   if (loading) {
-    return <div className="page-wrapper"><div className="spinner-overlay"><div className="spinner"></div></div></div>;
+    return (
+      <div className="page-wrapper">
+        <div className="spinner-overlay">
+          <div className="spinner" />
+        </div>
+      </div>
+    );
   }
 
   if (!appointment) return null;
@@ -185,90 +148,84 @@ const PaymentPage = () => {
         <div className="payment-layout">
           <div className="payment-main animate-slideUp">
             <div className="page-header">
-              <h1>Complete Payment</h1>
-              <p>Secure payment to confirm your appointment</p>
+              <h1>Secure Checkout</h1>
+              <p>Complete your payment to confirm the booking</p>
             </div>
 
-            {/* Payment Method Selection */}
             <div className="payment-methods card">
               <h3>Select Payment Method</h3>
-              <div className="method-options">
-                <label className={`method-option ${paymentMethod === 'payhere' ? 'selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="method"
-                    value="payhere"
-                    checked={paymentMethod === 'payhere'}
-                    onChange={() => setPaymentMethod('payhere')}
-                  />
-                  <div className="method-content">
-                    <div className="method-icon">💳</div>
-                    <div>
-                      <strong>PayHere</strong>
-                      <span>Card / Bank Transfer / Mobile</span>
-                    </div>
+              
+              {/* PayHere Option */}
+              <label className={`method-option ${paymentMethod === 'payhere' ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="method"
+                  value="payhere"
+                  checked={paymentMethod === 'payhere'}
+                  onChange={() => setPaymentMethod('payhere')}
+                />
+                <div className="method-content">
+                  <div className="method-icon">🛡️</div>
+                  <div>
+                    <strong>PayHere Secure</strong>
+                    <span>Online Payment Gateway (Sandbox)</span>
                   </div>
-                  <FiCheck className="method-check" />
-                </label>
+                </div>
+                <FiCheck className="method-check" />
+              </label>
 
-                <label className={`method-option ${paymentMethod === 'cash' ? 'selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="method"
-                    value="cash"
-                    checked={paymentMethod === 'cash'}
-                    onChange={() => setPaymentMethod('cash')}
-                  />
-                  <div className="method-content">
-                    <div className="method-icon">💵</div>
-                    <div>
-                      <strong>Cash at Clinic</strong>
-                      <span>Pay when you visit</span>
-                    </div>
+              {/* Cash at Clinic Option - Always available */}
+              <label className={`method-option ${paymentMethod === 'cash' ? 'selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="method"
+                  value="cash"
+                  checked={paymentMethod === 'cash'}
+                  onChange={() => setPaymentMethod('cash')}
+                />
+                <div className="method-content">
+                  <div className="method-icon">💵</div>
+                  <div>
+                    <strong>Cash at Clinic</strong>
+                    <span>Pay when you visit</span>
                   </div>
-                  <FiCheck className="method-check" />
-                </label>
-              </div>
-
-              <div className="payment-info-box">
-                <FiInfo />
-                <span>
-                  {paymentMethod === 'payhere' 
-                    ? 'You will be redirected to PayHere secure checkout. Test cards are available in sandbox mode.'
-                    : 'Your appointment will be confirmed after payment at the clinic.'}
-                </span>
-              </div>
-
-              {paymentMethod === 'payhere' && (
-                <div style={{ display: 'none' }} className="test-cards"></div>
-              )}
-
-              <button
-                className="btn btn-primary btn-lg btn-block"
-                onClick={handlePayHere}
-                disabled={processing}
-              >
-                {processing ? 'Processing...' : (
-                  paymentMethod === 'payhere' 
-                    ? `Pay ${formatCurrency(appointment.consultationFee)} via PayHere`
-                    : 'Confirm Appointment'
-                )}
-              </button>
+                </div>
+                <FiCheck className="method-check" />
+              </label>
             </div>
 
+            <div className="payment-info-box">
+              <FiInfo />
+              <span>
+                {paymentMethod === 'payhere'
+                  ? 'You will be redirected to PayHere secure checkout. Use Sandbox credentials for testing.'
+                  : 'Your appointment will be confirmed after payment at the clinic.'}
+              </span>
+            </div>
+
+            <button
+              className="btn btn-primary btn-lg btn-block"
+              onClick={handlePayment}
+              disabled={processing}
+            >
+              {processing ? 'Processing...' : (
+                paymentMethod === 'cash'
+                  ? 'Confirm Appointment'
+                  : `Pay ${formatCurrency(appointment.consultationFee)} via PayHere`
+              )}
+            </button>
+
             <div className="security-notice">
-              <FiShield /> Your payment information is encrypted and secure
+              <FiShield /> Your information is encrypted and secure
             </div>
           </div>
 
-          {/* Order Summary Sidebar */}
-          <div className="payment-sidebar animate-slideUp" style={{ animationDelay: '100ms' }}>
+          <div className="payment-sidebar animate-slideUp">
             <div className="card order-summary">
               <h3>Order Summary</h3>
-              
               <div className="summary-doctor">
                 <div className="summary-avatar">
-                  {appointment.doctorName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                  {appointment.doctorName ? appointment.doctorName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'DR'}
                 </div>
                 <div>
                   <strong>{appointment.doctorName}</strong>

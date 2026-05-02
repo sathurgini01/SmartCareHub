@@ -115,10 +115,28 @@ async function getPatientPrescriptionHistory(requester) {
   });
 }
 
+async function getPrescriptionsByPatientId(patientId, requester) {
+  if (requester.role !== 'admin' && requester.role !== 'doctor') {
+    throw new ApiError(403, 'Only admins or doctors can view prescriptions for other patients');
+  }
+
+  const prescriptions = await Prescription.find({ patientId }).sort({ date: -1 });
+  const doctorIds = [...new Set(prescriptions.map((item) => String(item.doctorId)))];
+  const doctors = await Doctor.find({ _id: { $in: doctorIds } }).select('name');
+  const doctorNameById = new Map(doctors.map((doctor) => [String(doctor._id), doctor.name]));
+
+  return prescriptions.map((prescription) => {
+    const item = prescription.toObject();
+    item.doctorName = doctorNameById.get(String(item.doctorId)) || 'Doctor';
+    return item;
+  });
+}
+
 module.exports = {
   createPrescription,
   updatePrescription,
   deletePrescription,
   getPrescriptionHistory,
-  getPatientPrescriptionHistory
+  getPatientPrescriptionHistory,
+  getPrescriptionsByPatientId
 };

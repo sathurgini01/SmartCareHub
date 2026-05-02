@@ -1,4 +1,4 @@
-﻿const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const Doctor = require('../models/Doctor');
 const env = require('../config/env');
 const ApiError = require('../utils/ApiError');
@@ -82,23 +82,20 @@ async function registerDoctor(payload) {
     phone: phone || '',
     bio: bio || '',
     profileImage: profileImage || '',
-    status: 'approved',
+    status: 'pending',
     role: 'doctor'
   });
 
-  return normalizeUser(doctor);
+  const token = signToken(doctor);
+  return { token, doctor: normalizeUser(doctor) };
 }
 
 async function registerAdmin(payload) {
-  const { name, fullName, email, password, accessKey, title } = payload;
+  const { name, fullName, email, password, title } = payload;
   const normalizedName = fullName || name;
 
-  if (!normalizedName || !email || !password || !accessKey) {
+  if (!normalizedName || !email || !password) {
     throw new ApiError(400, 'All admin registration fields are required');
-  }
-
-  if (accessKey !== 'SMARTCARE-ADMIN') {
-    throw new ApiError(403, 'Admin access key is invalid');
   }
 
   if (!isValidEmail(email)) {
@@ -123,11 +120,11 @@ async function registerAdmin(payload) {
     password,
     role: 'admin',
     status: 'approved',
-    title: title || 'Operations Admin',
-    accessKey
+    title: title || 'Operations Admin'
   });
 
-  return normalizeUser(admin);
+  const token = signToken(admin);
+  return { token, doctor: normalizeUser(admin) };
 }
 
 async function loginUser(payload, expectedRole = null) {

@@ -2,6 +2,7 @@ const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
 const { checkDoubleBooking, validateDoctorAvailability, getAvailableSlots, validateAdvanceBooking } = require('../utils/slotValidator');
 const { syncDoctorDirectory } = require('../services/doctorDirectorySync');
+const { sendNotification } = require('../utils/notificationClient');
 
 async function trySyncDoctorDirectory() {
   try {
@@ -194,6 +195,37 @@ const createAppointment = async (req, res) => {
     });
 
     await appointment.save();
+
+    // Trigger Notifications
+    try {
+      const formattedTime = `${timeSlot.start} - ${timeSlot.end}`;
+      const formattedDate = new Date(appointmentDate).toDateString();
+
+      // Notify Patient
+      await sendNotification({
+        userId: appointment.patientId,
+        recipientEmail: appointment.patientEmail,
+        recipientPhone: appointment.patientPhone,
+        title: 'Appointment Booking Received',
+        subject: 'Appointment Booking Received',
+        message: `Dear ${appointment.patientName}, your appointment with Dr. ${appointment.doctorName} for ${formattedTime} on ${formattedDate} is currently pending. You will receive another update once confirmed.`,
+        category: 'booking_confirmation',
+        appointmentId: appointment._id
+      });
+
+      // Notify Doctor
+      await sendNotification({
+        userId: appointment.doctorExternalId, // Use external ID that matches their login token
+        recipientEmail: appointment.doctorEmail,
+        title: 'New Appointment Request',
+        subject: 'New Appointment Request',
+        message: `Hello Dr. ${appointment.doctorName}, you have a new appointment request from ${appointment.patientName} for ${formattedTime} on ${formattedDate}.`,
+        category: 'booking_confirmation',
+        appointmentId: appointment._id
+      });
+    } catch (notifErr) {
+      console.error('Notification trigger failed:', notifErr.message);
+    }
 
     res.status(201).json({ 
       success: true, 
@@ -393,6 +425,43 @@ const updateAppointmentStatus = async (req, res) => {
 
     appointment.status = status;
     await appointment.save();
+
+    // Trigger Notifications for status changes
+    try {
+      const formattedTime = `${appointment.timeSlot.start} - ${appointment.timeSlot.end}`;
+      const formattedDate = appointment.appointmentDate.toDateString();
+      
+      let subject = 'Appointment Status Updated';
+      let title = 'Appointment Update';
+      let message = `Dear ${appointment.patientName}, your appointment status with Dr. ${appointment.doctorName} has been updated to: ${status}.`;
+      
+      if (status === 'confirmed') {
+        title = 'Appointment Confirmed!';
+        subject = 'Appointment Confirmed';
+        message = `Great news ${appointment.patientName}! Your appointment with Dr. ${appointment.doctorName} for ${formattedTime} on ${formattedDate} has been confirmed.`;
+      } else if (status === 'rejected') {
+        title = 'Appointment Declined';
+        subject = 'Appointment Declined';
+        message = `We regret to inform you that Dr. ${appointment.doctorName} is unable to fulfill your appointment request for ${formattedTime} on ${formattedDate}.`;
+      } else if (status === 'completed') {
+        title = 'Consultation Completed';
+        subject = 'Consultation Completed';
+        message = `Thank you for choosing SmartCareHub. Your consultation with Dr. ${appointment.doctorName} is now complete. You can access your digital prescription in your dashboard.`;
+      }
+
+      await sendNotification({
+        userId: appointment.patientId,
+        recipientEmail: appointment.patientEmail,
+        recipientPhone: appointment.patientPhone,
+        title,
+        subject,
+        message,
+        category: status === 'completed' ? 'consultation_completion' : 'booking_status_update',
+        appointmentId: appointment._id
+      });
+    } catch (notifErr) {
+      console.error('Status notification trigger failed:', notifErr.message);
+    }
 
     res.json({ 
       success: true, 

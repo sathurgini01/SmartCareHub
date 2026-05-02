@@ -16,8 +16,8 @@ const { protect, restrictTo } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// Internal/doctor: create or retrieve a video consultation session for an appointment.
-router.post("/sessions", protect, restrictTo("admin", "doctor", "system"), createSession);
+// Internal/doctor/patient: create or retrieve a video consultation session for an appointment.
+router.post("/sessions", protect, restrictTo("admin", "doctor", "system", "patient"), createSession);
 
 // Patient or doctor: fetch session by appointment
 router.get("/sessions/appointment/:appointmentId", protect, restrictTo("patient", "doctor", "admin"), getSessionByAppointment);

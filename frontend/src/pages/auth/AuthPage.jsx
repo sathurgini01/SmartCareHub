@@ -229,13 +229,7 @@ export default function AuthPage() {
               </>
             ) : null}
 
-            {selected.id === 'admin-register' ? (
-              <FormInput
-                label="Admin Code / Access Key"
-                value={form.accessKey}
-                onChange={(event) => setForm((current) => ({ ...current, accessKey: event.target.value }))}
-              />
-            ) : null}
+
           </div>
 
           <button className="btn btn-primary" type="submit" disabled={loading}>

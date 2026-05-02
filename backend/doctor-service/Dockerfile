@@ -1,8 +1,9 @@
-﻿FROM node:20-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
+RUN apk add --no-cache ca-certificates
 RUN npm install --omit=dev
 
 COPY . .

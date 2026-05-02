@@ -83,13 +83,32 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const savedSession = getSavedSession();
       const savedToken = getSavedToken();
       if (savedToken) {
         try {
           axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-          const res = await getProfile();
-          const userData = normalizeUser(res.data.user || res.data || savedSession?.user);
+          
+          // Decode token to see role
+          let profileRes;
+          try {
+            const { jwtDecode } = await import('jwt-decode');
+            const decoded = jwtDecode(savedToken);
+            if (decoded.role === 'doctor' || decoded.role === 'admin') {
+              profileRes = await axios.get('http://localhost:5000/api/doctors/doctors/me');
+            } else {
+              profileRes = await getProfile();
+            }
+          } catch (e) {
+            // Fallback if decode fails
+            profileRes = await getProfile();
+          }
+
+          const userData = normalizeUser(
+            profileRes.data.data || 
+            profileRes.data.user || 
+            profileRes.data.doctor || 
+            profileRes.data
+          );
           setUser(userData);
           setToken(savedToken);
           updateSession(savedToken, userData);
@@ -114,8 +133,11 @@ export const AuthProvider = ({ children }) => {
     }
     
     const res = await loginApi(loginData);
-    const newToken = res.data.token;
-    const userData = normalizeUser(res.data.user || res.data);
+    
+    // Support both flat (auth-service) and nested (doctor-service) responses
+    const newToken = res.data.token || res.data.data?.token;
+    const rawUser = res.data.user || res.data.data?.doctor || res.data.data?.user || res.data.data || res.data;
+    const userData = normalizeUser(rawUser);
     
     const expectedRole = normalizeRole(loginData?.role);
     const actualRole = normalizeRole(userData?.role);
@@ -142,15 +164,18 @@ export const AuthProvider = ({ children }) => {
     }
 
     const res = await registerApi(registerData);
-    if (res.data && res.data.token) {
-       const newToken = res.data.token;
-       const userData = normalizeUser(res.data.user || res.data);
-       if (userData) delete userData.token;
+    
+    // Support both flat and nested responses
+    const newToken = res.data.token || res.data.data?.token;
+    const rawUser = res.data.user || res.data.data?.doctor || res.data.data?.user || res.data.data || res.data;
+    const userData = normalizeUser(rawUser);
 
-       updateSession(newToken, userData);
-       setUser(userData);
+    if (newToken && userData) {
+      updateSession(newToken, userData);
+      setUser(userData);
     }
-    return { success: true, ...res.data };
+    
+    return { success: true, user: userData };
   }, [updateSession]);
 
   const isAuthenticated = !!token;

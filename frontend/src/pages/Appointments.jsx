@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import appointmentService from '../services/appointmentService';
 import { formatDate, formatTime, formatCurrency, getStatusBadge, getSpecialtyIcon } from '../utils/formatters';
-import { FiCalendar, FiClock, FiX, FiCreditCard, FiSearch } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiX, FiCreditCard, FiSearch, FiVideo, FiCheck } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import './MyAppointments.css';
 
@@ -128,9 +128,18 @@ const MyAppointments = () => {
                   {apt.appointmentNumber && <p className="apt-ref">Ref: {apt.appointmentNumber}</p>}
 
                   <div className="apt-card-actions">
-                    {apt.paymentStatus === 'unpaid' && apt.status !== 'cancelled' && (
+                    {apt.paymentStatus === 'unpaid' && apt.status !== 'cancelled' ? (
                       <Link to={`/payment/${apt._id}`} className="btn btn-primary btn-sm">
                         <FiCreditCard /> Pay Now
+                      </Link>
+                    ) : apt.paymentStatus === 'paid' && apt.status !== 'cancelled' ? (
+                      <button className="btn btn-secondary btn-sm" disabled style={{ opacity: 0.8, cursor: 'default' }}>
+                        <FiCheck /> Paid
+                      </button>
+                    ) : null}
+                    {apt.status !== 'cancelled' && (
+                      <Link to={`/patient/telemedicine/${apt._id}`} className="btn btn-primary btn-sm" style={{ background: '#16a34a', borderColor: '#16a34a' }}>
+                        <FiVideo /> Open Session
                       </Link>
                     )}
                     {!['completed', 'cancelled'].includes(apt.status) && (

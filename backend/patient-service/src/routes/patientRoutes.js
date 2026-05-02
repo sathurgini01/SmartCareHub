@@ -80,12 +80,28 @@ router.get(
   patientController.getAllPatients
 );
 
+// Get patient prescriptions for admin
+router.get(
+  '/admin/patient/:patientId/prescriptions',
+  verifyToken,
+  authorizeRoles('admin'),
+  patientController.getPatientPrescriptionsForAdmin
+);
+
 // Suspend a patient
 router.patch(
   '/admin/suspend/:id',
   verifyToken,
   authorizeRoles('admin'),
   patientController.suspendPatient
+);
+
+// Update a patient
+router.put(
+  '/admin/update/:id',
+  verifyToken,
+  authorizeRoles('admin'),
+  patientController.adminUpdatePatient
 );
 
 // Delete a patient

@@ -1,7 +1,25 @@
 import axios from './axios';
 
-const AUTH_BASE_URL = 'http://localhost:5001/api/auth';
+const GATEWAY_URL = 'http://localhost:5000/api';
 
-export const login = (data) => axios.post(`${AUTH_BASE_URL}/login`, data);
-export const register = (data) => axios.post(`${AUTH_BASE_URL}/register`, data);
-export const getProfile = () => axios.get(`${AUTH_BASE_URL}/me`);
+export const login = (data) => {
+  let url = `${GATEWAY_URL}/auth/login`;
+  if (data.role === 'doctor') {
+    url = `${GATEWAY_URL}/doctors/auth/login`;
+  } else if (data.role === 'admin') {
+    url = `${GATEWAY_URL}/doctors/auth/admin/login`;
+  }
+  return axios.post(url, data);
+};
+
+export const register = (data) => {
+  let url = `${GATEWAY_URL}/auth/register`;
+  if (data.role === 'doctor') {
+    url = `${GATEWAY_URL}/doctors/auth/register`;
+  } else if (data.role === 'admin') {
+    url = `${GATEWAY_URL}/doctors/auth/admin/register`;
+  }
+  return axios.post(url, data);
+};
+
+export const getProfile = () => axios.get(`${GATEWAY_URL}/auth/me`);

@@ -75,6 +75,16 @@ const paymentSchema = new mongoose.Schema({
     default: null
   },
 
+  // Masked card info (for mock card flow)
+  cardLast4: {
+    type: String,
+    default: null
+  },
+  cardType: {
+    type: String,
+    default: null
+  },
+
   // Refund info
   refundReason: {
     type: String,

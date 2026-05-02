@@ -50,6 +50,15 @@ export async function deleteDoctorAccount(doctorId) {
   return true;
 }
 
+export async function updateDoctorAccount(doctorId, updates) {
+  const response = await apiRequest(`/doctors/${doctorId}`, {
+    method: 'PUT',
+    token: getToken(),
+    body: updates
+  });
+  return mapDoctor(response.data);
+}
+
 export async function getAdminProfile(adminId) {
   const response = await apiRequest(`/doctors/${adminId}`, {
     token: getToken()

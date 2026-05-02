@@ -9,6 +9,7 @@ FROM node:18-alpine AS production
 WORKDIR /app
 
 # Non-root user for security
+RUN apk add --no-cache ca-certificates
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy only production node_modules

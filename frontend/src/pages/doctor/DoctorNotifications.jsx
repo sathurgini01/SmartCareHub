@@ -51,17 +51,7 @@ function DoctorNotifications() {
             </div>
           </div>
 
-          <div className="filter-bar">
-            {['all', 'email', 'sms'].map((f) => (
-              <button
-                key={f}
-                className={`filter-btn ${filter === f ? 'active' : ''}`}
-                onClick={() => setFilter(f)}
-              >
-                {f === 'all' ? 'All' : f === 'email' ? '📧 Email' : '📱 SMS'}
-              </button>
-            ))}
-          </div>
+          {/* Filter bar removed as requested */}
 
           {error && <div className="alert alert-error">⚠ {error}</div>}
 
@@ -75,23 +65,19 @@ function DoctorNotifications() {
               </div>
             ) : (
               filtered.map((n, i) => {
-                const ch = (n.type || 'email').toLowerCase();
-                const delivered = n.status === 'sent' || n.status === 'delivered';
                 return (
-                  <div key={n._id || i} className="notif-item">
-                    <div className={`notif-icon ${ch}`}>
-                      {ch === 'sms' ? '📱' : '📧'}
-                    </div>
+                  <div key={n._id || i} className="notif-item" style={{ borderLeft: '3px solid #10b981', marginBottom: '10px', padding: '15px' }}>
                     <div className="notif-body">
-                      <p className="notif-title">{n.subject || n.message?.substring(0, 60) || 'Notification'}</p>
-                      <p className="notif-meta">
-                        {n.recipientEmail || n.recipientPhone || ''}{n.recipientEmail || n.recipientPhone ? ' · ' : ''}
+                      <p className="notif-title" style={{ fontWeight: '600', color: '#f1f5f9' }}>
+                        {n.title || n.subject || 'Patient Notification'}
+                      </p>
+                      <p className="notif-message" style={{ margin: '5px 0', color: '#94a3b8' }}>
+                        {n.message}
+                      </p>
+                      <p className="notif-meta" style={{ fontSize: '0.8rem', color: '#64748b' }}>
                         {timeAgo(n.createdAt)}
                       </p>
                     </div>
-                    <span className={`badge ${delivered ? 'badge-green' : 'badge-red'}`}>
-                      {delivered ? '✓ Delivered' : '✗ Failed'}
-                    </span>
                   </div>
                 );
               })

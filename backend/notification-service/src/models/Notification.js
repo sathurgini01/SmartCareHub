@@ -14,6 +14,11 @@ const notificationSchema = new mongoose.Schema(
       index: true,
       trim: true,
     },
+    title: {
+      type: String,
+      default: "System Notification",
+      trim: true,
+    },
     type: {
       type: String,
       enum: ["email", "sms"],
@@ -21,7 +26,14 @@ const notificationSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["booking_confirmation", "consultation_reminder", "consultation_completion"],
+      enum: [
+        "booking_confirmation", 
+        "booking_status_update",
+        "consultation_reminder", 
+        "consultation_completion",
+        "system_alert",
+        "account_verification"
+      ],
       required: [true, "Notification category is required"],
     },
     recipientEmail: {
@@ -49,6 +61,10 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "sent", "failed"],
       default: "sent",
+    },
+    isRead: {
+      type: Boolean,
+      default: false,
     },
     provider: {
       type: String,

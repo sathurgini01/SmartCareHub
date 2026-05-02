@@ -92,9 +92,40 @@ export default function DoctorDashboardPage() {
     return <LoadingSpinner label="Loading doctor dashboard..." />;
   }
 
+  const isPending = user && user.status === 'pending';
+  const isRejected = user && user.status === 'rejected';
+
+  if (isRejected) {
+    return (
+      <ShellLayout>
+        <div style={{ textAlign: 'center', padding: '100px 20px', background: '#0f172a', minHeight: '80vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ fontSize: '4rem', marginBottom: '24px' }}>❌</div>
+          <h1 style={{ color: '#ef4444', fontSize: '2.5rem', marginBottom: '16px' }}>Application Rejected</h1>
+          <p style={{ color: '#94a3b8', maxWidth: '600px', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '32px' }}>
+            We regret to inform you that your application to join SmartCareHub as a doctor has been rejected. 
+            This could be due to incomplete documentation or mismatch in verification requirements.
+          </p>
+          <button className="btn btn-primary" onClick={() => navigate('/home')}>Return to Home</button>
+        </div>
+      </ShellLayout>
+    );
+  }
+
   return (
     <ShellLayout>
       {message ? <div className="alert-success">{message}</div> : null}
+
+      {isPending && (
+        <div style={{ background: 'rgba(251, 191, 36, 0.15)', border: '1px solid #fbbf24', borderRadius: '12px', padding: '20px', marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ fontSize: '2.5rem' }}>⏳</div>
+          <div>
+            <h3 style={{ color: '#fbbf24', margin: '0 0 5px' }}>Account Verification Pending</h3>
+            <p style={{ color: '#d1d5db', margin: 0, fontSize: '0.95rem' }}>
+              Your professional credentials are being reviewed. You can explore the dashboard, but most features will be enabled only after approval.
+            </p>
+          </div>
+        </div>
+      )}
 
       <PageBanner
         eyebrow="Smart Healthcare Doctor Portal"
@@ -120,11 +151,13 @@ export default function DoctorDashboardPage() {
             <button
               key={item.title}
               className={`service-card service-card-${item.accent}`}
-              onClick={() => navigate(item.route)}
+              onClick={() => !isPending && navigate(item.route)}
+              style={isPending ? { opacity: 0.6, cursor: 'not-allowed', filter: 'grayscale(0.5)' } : {}}
             >
               <span className="service-icon service-emoji" aria-hidden="true">{item.icon}</span>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
+              {isPending && <span style={{ fontSize: '0.7rem', color: '#fbbf24', fontWeight: 'bold' }}>🔒 Locked</span>}
             </button>
           ))}
         </div>

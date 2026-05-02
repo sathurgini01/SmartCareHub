@@ -4,6 +4,8 @@ const { auth, authorize } = require('../middleware/auth');
 const { validatePaymentCreate, validateRefund } = require('../middleware/validation');
 const {
   createPayment,
+  processCheckout,
+  getPaymentStatus,
   payhereNotify,
   simulatePayment,
   getPaymentById,
@@ -17,6 +19,10 @@ const {
 
 // ============== PayHere Webhook (no auth - called by PayHere servers) ==============
 router.post('/notify', payhereNotify);
+
+// ============== University Project Requirements: Mock Card Flow ==============
+router.post('/checkout', auth, processCheckout);
+router.get('/status/:id', auth, getPaymentStatus);
 
 // ============== Patient Routes ==============
 router.post('/', auth, validatePaymentCreate, createPayment);

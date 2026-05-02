@@ -5,6 +5,8 @@ const {
   getMyNotifications,
   getNotificationById,
   getAllNotificationLogs,
+  markAsRead,
+  deleteNotification,
 } = require("../controllers/notificationController");
 const { protect, restrictTo } = require("../middleware/authMiddleware");
 
@@ -18,6 +20,12 @@ router.post("/send-sms", protect, restrictTo("admin", "doctor", "patient"), send
 
 // Patient or doctor: view own notifications
 router.get("/me", protect, restrictTo("patient", "doctor", "admin"), getMyNotifications);
+
+// Mark as read
+router.patch("/:notificationId/read", protect, restrictTo("patient", "doctor", "admin"), markAsRead);
+
+// Delete notification
+router.delete("/:notificationId", protect, restrictTo("patient", "doctor", "admin"), deleteNotification);
 
 // Any authenticated user: view a specific notification by ID
 router.get("/admin/logs", protect, restrictTo("admin"), getAllNotificationLogs);

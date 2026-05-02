@@ -6,12 +6,13 @@ import Layout from '../components/Layout';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
-import Dashboard from '../pages/Dashboard.jsx';
+import Dashboard from '../pages/Dashboard';
 import Profile from '../pages/Profile';
 import Prescriptions from '../pages/Prescriptions';
 import Appointments from '../pages/Appointments';
-import UploadReport from '../pages/UploadReport.js';
+import UploadReport from '../pages/UploadReport';
 import NotFound from '../pages/NotFound';
+import NotificationsPage from '../pages/NotificationsPage';
 
 // Appointment Service Components
 import BrowseDoctors from '../pages/BrowseDoctors';
@@ -45,6 +46,8 @@ import AdminAppointmentsPage from '../pages/admin/AdminAppointmentsPage';
 import AdminPaymentsPage from '../pages/admin/AdminPaymentsPage';
 import AllDoctorsPage from '../pages/admin/AllDoctorsPage';
 import VerifyDoctorsPage from '../pages/admin/VerifyDoctorsPage';
+import PatientManagementPage from '../pages/admin/PatientManagementPage';
+import DoctorManagementPage from '../pages/admin/DoctorManagementPage';
 import AvailabilityPage from '../pages/doctor/AvailabilityPage';
 import DoctorDashboardPage from '../pages/doctor/DoctorDashboardPage';
 import DoctorProfilePage from '../pages/doctor/DoctorProfilePage';
@@ -120,9 +123,14 @@ export default function AppRoutes() {
       <Route path="/admin/all-doctors" element={<ProtectedRoute role="admin"><AllDoctorsPage /></ProtectedRoute>} />
       <Route path="/admin/verify-doctors" element={<ProtectedRoute role="admin"><VerifyDoctorsPage /></ProtectedRoute>} />
       <Route path="/admin/profile" element={<ProtectedRoute role="admin"><AdminProfilePage /></ProtectedRoute>} />
+      <Route path="/admin/patient-management" element={<ProtectedRoute role="admin"><PatientManagementPage /></ProtectedRoute>} />
+      <Route path="/admin/doctor-management" element={<ProtectedRoute role="admin"><DoctorManagementPage /></ProtectedRoute>} />
       <Route path="/admin/telemedicine/logs" element={<ProtectedRoute roles={['admin']}><AdminTelemedicineLogs /></ProtectedRoute>} />
       <Route path="/admin/notifications/logs" element={<ProtectedRoute roles={['admin']}><AdminNotificationLogs /></ProtectedRoute>} />
       <Route path="/admin/ai/logs" element={<ProtectedRoute roles={['admin']}><AdminAiLogs /></ProtectedRoute>} />
+
+      {/* ====== Common Routes ====== */}
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
       {/* ====== Fallback Route ====== */}
       <Route path="/404" element={<NotFound />} />

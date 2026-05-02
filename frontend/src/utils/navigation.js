@@ -12,6 +12,6 @@ export const adminNavItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: 'Overview' },
   { to: '/admin/appointments', label: 'Appointments', icon: 'Requests' },
   { to: '/admin/payments', label: 'Payments', icon: 'CreditCard' },
-  { to: '/admin/verify-doctors', label: 'Verify Doctors', icon: 'Verify' },
-  { to: '/admin/all-doctors', label: 'All Doctors', icon: 'Doctors' }
+  { to: '/admin/patient-management', label: 'Patient Management', icon: 'User' },
+  { to: '/admin/doctor-management', label: 'Doctor Management', icon: 'Verify' }
 ];

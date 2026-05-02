@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 
 /* ─── tiny helpers ────────────────────────────────────────────────────────── */
 const S = {
@@ -36,6 +37,19 @@ const S = {
     cursor: 'pointer', textDecoration: 'none', display: 'inline-block',
     boxShadow: '0 4px 15px rgba(34,197,94,0.35)',
     transition: 'all 0.25s',
+  },
+  disabledBtn: {
+    background: '#334155',
+    color: '#94a3b8',
+    border: '1px solid #475569',
+    padding: '10px 26px',
+    borderRadius: '8px',
+    fontWeight: 700,
+    fontSize: '0.92rem',
+    cursor: 'not-allowed',
+    textDecoration: 'none',
+    display: 'inline-block',
+    opacity: 0.7,
   },
 
   // section wrapper
@@ -123,7 +137,7 @@ const Home = () => {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('');
 
-  const { isAuthenticated, isPatient, isAdmin, isDoctor } = useAuth();
+  const { isAuthenticated, isPatient, isAdmin, isDoctor, user } = useAuth();
 
   const isLoggedIn = isAuthenticated;
   
@@ -179,12 +193,23 @@ const Home = () => {
             </button>
           ))}
           {isLoggedIn ? (
-            <Link to={dashboardPath} style={S.loginBtn}>My Dashboard</Link>
+            <Link 
+              to={dashboardPath} 
+              style={(isDoctor && user?.status === 'pending') ? S.disabledBtn : S.loginBtn}
+              onClick={(e) => {
+                if (isDoctor && user?.status === 'pending') {
+                  e.preventDefault();
+                  toast.info("Your account is pending approval. You will be able to access the dashboard once an admin reviews your request.");
+                } else if (isDoctor && user?.status === 'rejected') {
+                  e.preventDefault();
+                  toast.error("Your application has been rejected. Please contact support for details.");
+                }
+              }}
+            >
+              {(isDoctor && user?.status === 'pending') ? 'Verification Pending' : 'My Dashboard'}
+            </Link>
           ) : (
-            <>
-              <Link to="/login" style={{...S.loginBtn, background: 'linear-gradient(135deg,#64748b,#475569)'}}>Patient Login</Link>
-              <Link to="/login" style={S.loginBtn}>Portal Login</Link>
-            </>
+            <Link to="/login" style={S.loginBtn}>Login</Link>
           )}
         </div>
       </nav>

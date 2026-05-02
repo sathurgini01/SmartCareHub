@@ -4,6 +4,12 @@ export const paymentService = {
   // Create payment
   create: (data) => api.post('/payments', data),
   
+  // Secure mock checkout (University Project Requirement)
+  checkout: (data) => api.post('/payments/checkout', data),
+  
+  // Get status (University Project Requirement)
+  getStatus: (id) => api.get(`/payments/status/${id}`),
+
   // Get payment by ID
   getById: (id) => api.get(`/payments/${id}`),
   

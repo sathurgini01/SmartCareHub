@@ -142,6 +142,12 @@ const createSession = async (req, res) => {
         message: "Forbidden: Doctors can create sessions only for their own appointments",
       });
     }
+    if (role === "patient" && String(patientId) !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: Patients can create sessions only for their own appointments",
+      });
+    }
 
     const existingSession = await TelemedicineSession.findOne({ appointmentId });
     if (existingSession) {

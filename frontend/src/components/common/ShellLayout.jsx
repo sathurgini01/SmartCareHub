@@ -41,6 +41,15 @@ function AppIcon({ type }) {
     );
   }
 
+  if (type === 'bell') {
+    return (
+      <svg {...commonProps}>
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    );
+  }
+
   return (
     <svg {...commonProps}>
       <path d="M15 18l-6-6 6-6" />
@@ -79,6 +88,10 @@ export default function ShellLayout({ children }) {
           <button className="nav-logout" onClick={() => navigate('/dashboard')} style={{ marginRight: '8px' }}>
             <AppIcon type="home" />
             Home
+          </button>
+          <button className="nav-logout" onClick={() => navigate('/notifications')} style={{ marginRight: '8px' }}>
+            <AppIcon type="bell" />
+            Notifications
           </button>
           <button className="profile-trigger" onClick={() => navigate(profilePath)}>
             <span className="profile-icon-circle">

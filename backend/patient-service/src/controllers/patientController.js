@@ -262,6 +262,29 @@ exports.getPrescriptions = async (req, res) => {
   }
 };
 
+exports.getPatientPrescriptionsForAdmin = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const authHeader = req.headers.authorization || '';
+    
+    const response = await fetch(`${DOCTOR_SERVICE_URL}/api/prescriptions/patient/${patientId}`, {
+      headers: {
+        Authorization: authHeader
+      }
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json(payload);
+    }
+
+    res.json(payload.data || []);
+  } catch (error) {
+    console.error('getPatientPrescriptionsForAdmin error:', error);
+    res.status(500).json({ error: 'Server error.' });
+  }
+};
+
 // ── Patient: Get appointments (placeholder — populated by Appointment Service) ─
 exports.getAppointments = async (req, res) => {
   try {
@@ -332,6 +355,38 @@ exports.deletePatient = async (req, res) => {
     res.json({ message: 'Patient deleted successfully.' });
   } catch (error) {
     console.error('deletePatient error:', error);
+    res.status(500).json({ error: 'Server error.' });
+  }
+};
+// ── Admin: Update patient ─────────────────────────────────────────────────────
+exports.adminUpdatePatient = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patient = await Patient.findById(id);
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found.' });
+    }
+
+    // Support both 'name' and 'fullName'
+    if (req.body.name && !req.body.fullName) {
+      req.body.fullName = req.body.name;
+    }
+
+    const allowedUpdates = [
+      'fullName', 'email', 'phone', 'dateOfBirth',
+      'gender', 'address', 'medicalHistory', 'isSuspended'
+    ];
+    
+    Object.keys(req.body).forEach((key) => {
+      if (allowedUpdates.includes(key)) {
+        patient[key] = req.body[key];
+      }
+    });
+
+    await patient.save();
+    res.json({ message: 'Patient updated successfully.', patient });
+  } catch (error) {
+    console.error('adminUpdatePatient error:', error);
     res.status(500).json({ error: 'Server error.' });
   }
 };

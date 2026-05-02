@@ -4,7 +4,7 @@ const { sendSms } = require("../utils/smsSender");
 
 const sendEmailNotification = async (req, res) => {
   try {
-    const { userId, appointmentId, recipientEmail, subject, message, category } = req.body;
+    const { userId, appointmentId, recipientEmail, subject, message, category, title } = req.body;
 
     if (!userId || !recipientEmail || !message || !category) {
       return res.status(400).json({
@@ -38,6 +38,7 @@ const sendEmailNotification = async (req, res) => {
       status,
       provider,
       sentAt: new Date(),
+      title: title || subject || "SmartCareHub Notification",
     });
 
     return res.status(201).json({
@@ -58,7 +59,7 @@ const sendEmailNotification = async (req, res) => {
 
 const sendSmsNotification = async (req, res) => {
   try {
-    const { userId, appointmentId, recipientPhone, message, category } = req.body;
+    const { userId, appointmentId, recipientPhone, message, category, title } = req.body;
 
     if (!userId || !recipientPhone || !message || !category) {
       return res.status(400).json({
@@ -87,6 +88,7 @@ const sendSmsNotification = async (req, res) => {
       status,
       provider,
       sentAt: new Date(),
+      title: title || "SmartCareHub SMS",
     });
 
     return res.status(201).json({
@@ -107,12 +109,13 @@ const sendSmsNotification = async (req, res) => {
 
 const getMyNotifications = async (req, res) => {
   try {
-    const { userId } = req.query;
+    // Priority: req.user.id (from token) then req.query.userId (fallback for system calls if needed)
+    const userId = req.user?.id || req.query.userId;
 
     if (!userId) {
       return res.status(400).json({
         success: false,
-        message: "userId query parameter is required",
+        message: "userId is required",
       });
     }
 
@@ -176,10 +179,46 @@ const getAllNotificationLogs = async (_req, res) => {
   }
 };
 
+const markAsRead = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const notification = await Notification.findByIdAndUpdate(
+      notificationId,
+      { isRead: true },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: "Notification not found" });
+    }
+
+    return res.status(200).json({ success: true, data: notification });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to mark as read", error: error.message });
+  }
+};
+
+const deleteNotification = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const notification = await Notification.findByIdAndDelete(notificationId);
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: "Notification not found" });
+    }
+
+    return res.status(200).json({ success: true, message: "Notification deleted" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to delete notification", error: error.message });
+  }
+};
+
 module.exports = {
   sendEmailNotification,
   sendSmsNotification,
   getMyNotifications,
   getNotificationById,
   getAllNotificationLogs,
+  markAsRead,
+  deleteNotification,
 };

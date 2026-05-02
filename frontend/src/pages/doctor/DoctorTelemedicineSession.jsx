@@ -79,6 +79,9 @@ function DoctorTelemedicineSession() {
   const startSession = async () => {
     await startTelemedicineSession(session.id);
     setStarted(true);
+    if (session.sessionLink) {
+      window.open(session.sessionLink, '_blank');
+    }
   };
 
   const finishSession = async () => {
@@ -130,11 +133,22 @@ function DoctorTelemedicineSession() {
               </div>
             )}
             <div style={{ height: '100%', minHeight: '390px', display: 'grid', placeItems: 'center', color: '#94a3b8', textAlign: 'center' }}>
-              <div>
-                <FiCamera size={46} />
-                <h2>{started ? 'Patient video area' : ended ? 'Session completed' : 'Patient waiting room'}</h2>
-                <p>Video SDK placeholder. Real video provider can be mounted here later.</p>
-              </div>
+              {started ? (
+                <div style={{ display: 'grid', placeItems: 'center', height: '100%', gap: '10px' }}>
+                  <FiCamera size={46} color="#22c55e" />
+                  <h2 style={{ color: '#22c55e', margin: 0 }}>Session is Live</h2>
+                  <p>Your secure video room has been opened in a new tab.</p>
+                  <button className="btn btn-primary" onClick={() => window.open(session.sessionLink, '_blank')} style={{ marginTop: '10px' }}>
+                    <FiPlayCircle /> Re-open Video Room
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <FiCamera size={46} />
+                  <h2>{ended ? 'Session completed' : 'Patient waiting room'}</h2>
+                  <p>{ended ? 'The consultation has concluded.' : 'Ready to begin. Click "Start Session" to open the video room.'}</p>
+                </div>
+              )}
             </div>
             <div style={{ position: 'absolute', right: 18, bottom: 18, width: 180, height: 112, borderRadius: '8px', border: '1px solid #334155', background: cameraOn ? '#111827' : '#1f2937', display: 'grid', placeItems: 'center', color: '#cbd5e1' }}>
               {cameraOn ? 'Doctor preview' : <FiCameraOff size={28} />}

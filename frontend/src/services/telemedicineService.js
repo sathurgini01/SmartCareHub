@@ -1,4 +1,5 @@
 import { wait } from './storage';
+import axios from '../api/axios';
 import appointmentService from './appointmentService';
 import doctorService, { getDoctorDashboard } from './doctorService';
 
@@ -70,6 +71,7 @@ const buildMockSession = (appointmentId = 'demo-appointment') => ({
     status: 'Draft',
     items: ['Prescription details will be available after consultation.'],
   },
+  sessionLink: `https://meet.jit.si/smartcarehub-${appointmentId}`,
 });
 
 const buildSessionFromAppointment = async (appointment) => {
@@ -122,65 +124,123 @@ const buildSessionFromAppointment = async (appointment) => {
       status: appointment.paymentStatus === 'paid' ? 'Ready after consultation' : 'Pending consultation',
       items: ['Prescription details will be available after consultation.'],
     },
+    sessionLink: `https://meet.jit.si/smartcarehub-${appointment._id || appointment.id}`,
+  };
+};
+
+const buildSessionFromBackend = (data, appointment) => {
+  return {
+    id: data._id,
+    appointmentId: data.appointmentId,
+    sessionType: data.sessionType === 'video' ? 'Video Consultation' : 'Audio Consultation',
+    status: data.status,
+    connectionState: 'Connected',
+    sessionLink: data.sessionLink,
+    appointment: {
+      id: data.appointmentId,
+      date: data.scheduledStartTime,
+      time: appointment ? formatAppointmentTime(appointment) : 'Scheduled',
+      specialty: data.specialty,
+      consultationType: 'Online',
+      status: data.status === 'ended' ? 'completed' : 'confirmed',
+    },
+    doctor: {
+      id: data.doctorId,
+      name: data.doctorName || 'Doctor',
+      specialty: data.specialty,
+      hospital: 'SmartCareHub Virtual Clinic',
+      availability: 'Online',
+    },
+    patient: {
+      id: data.patientId,
+      name: data.patientName || 'Patient',
+      age: appointment?.patientAge || 'N/A',
+      gender: appointment?.patientGender || 'N/A',
+      symptomSummary: data.reason || 'No summary',
+      medicalHistory: appointment?.notes || 'None',
+      email: appointment?.patientEmail || '',
+      phone: appointment?.patientPhone || '',
+    },
+    summary: data.summary || '',
+    consultationNotes: data.consultationNotes || '',
+    prescription: data.prescription || { status: 'not_issued', items: [] },
   };
 };
 
 export async function getTelemedicineSessionByAppointmentId(appointmentId) {
-  if (!appointmentId || appointmentId === 'demo-session') {
-    return wait(buildMockSession(appointmentId), 260);
-  }
-
   try {
-    const response = await appointmentService.getById(appointmentId);
-    const appointment = response.data?.data;
-    if (appointment) return buildSessionFromAppointment(appointment);
-  } catch (_error) {
-    // Keep the UI usable if the appointment service is unavailable.
+    // 1. Try to fetch existing session
+    const response = await axios.get(`/api/telemedicine/sessions/appointment/${appointmentId}`);
+    if (response.data.success) {
+      // Get appointment details for extra info
+      const apptRes = await appointmentService.getById(appointmentId);
+      return buildSessionFromBackend(response.data.data, apptRes.data?.data);
+    }
+  } catch (error) {
+    if (error.response?.status === 404) {
+      // 2. If not found, create it from appointment data
+      try {
+        const apptRes = await appointmentService.getById(appointmentId);
+        const appt = apptRes.data?.data;
+        if (appt) {
+          const createRes = await axios.post('/api/telemedicine/sessions', {
+            appointmentId: appt._id,
+            doctorId: appt.doctorId,
+            patientId: appt.patientId,
+            doctorName: appt.doctorName,
+            patientName: appt.patientName,
+            specialty: appt.specialty,
+            reason: appt.reason,
+            scheduledStartTime: appt.appointmentDate,
+            patientEmail: appt.patientEmail,
+            doctorEmail: appt.doctorEmail
+          });
+          return buildSessionFromBackend(createRes.data.data, appt);
+        }
+      } catch (createErr) {
+        console.error('Failed to create telemedicine session:', createErr);
+      }
+    }
   }
 
   return wait(buildMockSession(appointmentId), 260);
 }
 
 export async function joinTelemedicineSession(sessionId) {
-  return wait({ success: true, sessionId, status: 'live', patientJoined: true }, 180);
+  if (String(sessionId).startsWith('tm-')) {
+    return { success: true, message: "Joined mock session" };
+  }
+  const res = await axios.post(`/api/telemedicine/sessions/${sessionId}/join`, { role: 'patient' });
+  return res.data;
 }
 
 export async function startTelemedicineSession(sessionId) {
-  return wait({ success: true, sessionId, status: 'live', doctorJoined: true }, 180);
+  if (String(sessionId).startsWith('tm-')) {
+    return { success: true, message: "Started mock session" };
+  }
+  const res = await axios.post(`/api/telemedicine/sessions/${sessionId}/join`, { role: 'doctor' });
+  return res.data;
 }
 
-export async function endTelemedicineSession(sessionOrId) {
-  const session = typeof sessionOrId === 'object' ? sessionOrId : { id: sessionOrId };
-  const completedSession = {
-    ...session,
-    status: 'completed',
-    endedAt: new Date().toISOString(),
-  };
-
-  const existing = readCompletedSessions();
-  const next = [
-    completedSession,
-    ...existing.filter((item) => item.appointmentId !== completedSession.appointmentId && item.id !== completedSession.id),
-  ];
-  writeCompletedSessions(next);
-
-  return wait({ success: true, sessionId: completedSession.id, status: 'completed', data: completedSession }, 180);
+export async function endTelemedicineSession(session) {
+  const res = await axios.patch(`/api/telemedicine/sessions/${session.id}/end`, {
+    summary: session.summary,
+    notes: session.consultationNotes
+  });
+  return res.data;
 }
 
 export async function saveConsultationNotes(sessionId, notes) {
-  return wait({ success: true, sessionId, notes, savedAt: new Date().toISOString() }, 180);
+  const res = await axios.patch(`/api/telemedicine/sessions/${sessionId}/notes`, { notes });
+  return res.data;
 }
 
 export async function issuePrescription(sessionId, payload = {}) {
-  return wait({
-    success: true,
-    sessionId,
-    prescription: {
-      status: 'Issued',
-      issuedAt: new Date().toISOString(),
-      items: payload.items || ['Medication and advice recorded by doctor.'],
-    },
-  }, 220);
+  const res = await axios.post(`/api/telemedicine/sessions/${sessionId}/prescription`, {
+    prescriptionId: payload.prescriptionId,
+    items: payload.items
+  });
+  return res.data;
 }
 
 export async function getPatientTelemedicineHistory() {

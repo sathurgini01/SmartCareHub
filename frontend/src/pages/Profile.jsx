@@ -19,10 +19,12 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       setProfile({
-        name: user.name || '',
+        fullName: user.fullName || user.name || '',
         email: user.email || '',
         phone: user.phone || '',
         address: user.address || '',
+        gender: user.gender || '',
+        medicalHistory: user.medicalHistory || '',
       });
       fetchProfile();
     }
@@ -31,7 +33,15 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const res = await api.get('/patients/me');
-      setProfile(res.data.data || res.data);
+      const data = res.data.data || res.data;
+      setProfile({
+        fullName: data.fullName || data.name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        address: data.address || '',
+        gender: data.gender || '',
+        medicalHistory: data.medicalHistory || '',
+      });
     } catch (error) {
       console.error('Fetch profile error:', error);
     } finally {
@@ -45,17 +55,17 @@ const Profile = () => {
     try {
       const res = await api.put('/patients/me', profile);
       toast.success('Profile updated successfully!');
-      if (res.data.data) {
+      if (res.data.patient || res.data.data) {
+        const updatedData = res.data.patient || res.data.data;
         const updatedUser = {
           ...user,
-          ...res.data.data,
-          id: user?.id || res.data.data.id || res.data.data._id,
-          name: res.data.data.name || res.data.data.fullName || user?.name,
-          fullName: res.data.data.fullName || res.data.data.name || user?.fullName,
+          ...updatedData,
+          id: user?.id || updatedData.id || updatedData._id,
         };
         setSession({ ...session, user: updatedUser });
       }
     } catch (error) {
+      console.error('Update profile error:', error);
       toast.error('Failed to update profile');
     } finally {
       setSubmitting(false);
@@ -83,8 +93,8 @@ const Profile = () => {
               <input
                 type="text"
                 className="form-input"
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                value={profile.fullName}
+                onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
                 required
               />
             </div>
@@ -108,17 +118,49 @@ const Profile = () => {
                 className="form-input"
                 value={profile.phone}
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                placeholder="+1 234 567 890"
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Home Address</label>
-              <input
-                type="text"
+              <label className="form-label">Gender</label>
+              <select
                 className="form-input"
-                value={profile.address}
-                onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-              />
+                value={profile.gender}
+                onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Home Address</label>
+            <input
+              type="text"
+              className="form-input"
+              value={profile.address}
+              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+              placeholder="123 Health St, Medical City"
+            />
+          </div>
+
+          <div className="section-heading" style={{ marginTop: '2rem' }}>
+            <h2>Health Information</h2>
+            <p>Providing your medical history helps doctors provide better care.</p>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Medical History</label>
+            <textarea
+              className="form-input"
+              style={{ minHeight: '120px', resize: 'vertical' }}
+              value={profile.medicalHistory}
+              onChange={(e) => setProfile({ ...profile, medicalHistory: e.target.value })}
+              placeholder="Describe any chronic conditions, allergies, or past surgeries..."
+            ></textarea>
           </div>
 
           <div className="form-actions" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>

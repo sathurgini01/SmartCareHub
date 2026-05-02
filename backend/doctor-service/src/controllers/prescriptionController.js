@@ -1,4 +1,4 @@
-﻿const prescriptionService = require('../services/prescriptionService');
+const prescriptionService = require('../services/prescriptionService');
 const { sendSuccess } = require('../utils/response');
 
 async function createPrescription(req, res, next) {
@@ -46,10 +46,20 @@ async function viewMyPrescriptions(req, res, next) {
   }
 }
 
+async function viewPatientPrescriptions(req, res, next) {
+  try {
+    const history = await prescriptionService.getPrescriptionsByPatientId(req.params.patientId, req.user);
+    return sendSuccess(res, 200, 'Patient prescriptions fetched', history);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   createPrescription,
   updatePrescription,
   deletePrescription,
   viewPrescriptionHistory,
-  viewMyPrescriptions
+  viewMyPrescriptions,
+  viewPatientPrescriptions
 };

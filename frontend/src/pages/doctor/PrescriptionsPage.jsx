@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import DataTable from '../../components/common/DataTable';
 import FormInput from '../../components/common/FormInput';
 import PageBanner from '../../components/common/PageBanner';
@@ -70,10 +71,27 @@ export default function PrescriptionsPage() {
   }
 
   async function handleSubmit() {
-    await savePrescription(user.id, form, editingId);
-    setForm(emptyPrescription);
-    setEditingId(null);
-    loadData();
+    if (!form.patientId) {
+      toast.error('Please select a patient first');
+      return;
+    }
+
+    const validMedicines = form.medicines.filter(m => m.name.trim() !== '');
+    if (validMedicines.length === 0) {
+      toast.error('Please add at least one medicine name');
+      return;
+    }
+
+    try {
+      await savePrescription(user.id, { ...form, medicines: validMedicines }, editingId);
+      toast.success(editingId ? 'Prescription updated successfully' : 'Prescription saved successfully');
+      setForm(emptyPrescription);
+      setEditingId(null);
+      loadData();
+    } catch (error) {
+      console.error('Failed to save prescription:', error);
+      toast.error(error.message || 'Failed to save prescription');
+    }
   }
 
   function handleSelectPatient(patient) {

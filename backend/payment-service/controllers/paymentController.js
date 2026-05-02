@@ -39,11 +39,19 @@ const updateAppointmentPaymentStatus = async (appointmentId, paymentId, paymentS
 
 // Helper: Generate PayHere hash
 const generatePayHereHash = (merchantId, orderId, amount, currency, merchantSecret) => {
-  const secret = (merchantSecret || '').trim();
+  const mId = String(merchantId || '').trim();
+  const oId = String(orderId || '').trim();
+  const amt = parseFloat(amount).toFixed(2);
+  const curr = String(currency || '').trim();
+  const secret = String(merchantSecret || '').trim();
+  
+  // Method: Double MD5 (Official Standard)
   const hashedSecret = CryptoJS.MD5(secret).toString().toUpperCase();
-  const amountFormatted = parseFloat(amount).toFixed(2);
-  const hashStr = (merchantId || '').trim() + (orderId || '').trim() + amountFormatted + (currency || '').trim() + hashedSecret;
-  return CryptoJS.MD5(hashStr).toString().toUpperCase();
+  const hashStr = mId + oId + amt + curr + hashedSecret;
+  const hash = CryptoJS.MD5(hashStr).toString().toUpperCase();
+
+  console.log('[PAYHERE] Hash Generation:', { mId, oId, amt, curr, hash });
+  return hash;
 };
 
 // ============================================================
@@ -519,8 +527,109 @@ const getTransactionLogs = async (req, res) => {
   }
 };
 
+// @desc    Secure mock checkout (Simulates Stripe/PayPal flow)
+// @route   POST /api/payments/checkout
+// @access  Patient
+const processCheckout = async (req, res) => {
+  try {
+    const { 
+      appointmentId, amount, currency, 
+      cardNumber, expiryDate, cvv, cardHolderName,
+      patientName, patientEmail, doctorName, specialty
+    } = req.body;
+
+    // 1. Basic Card Validation (Requirement #4)
+    const cleanCard = cardNumber.replace(/\s+/g, '');
+    if (cleanCard.length < 13 || cleanCard.length > 19) {
+      return res.status(400).json({ success: false, status: 'FAILED', message: 'Invalid card number format' });
+    }
+    if (!/^\d{3,4}$/.test(cvv)) {
+      return res.status(400).json({ success: false, status: 'FAILED', message: 'Invalid CVV' });
+    }
+
+    // 2. Simulate 80% Success / 20% Failure (Requirement #5)
+    const isSuccessful = Math.random() < 0.8;
+    const status = isSuccessful ? 'completed' : 'failed';
+    const message = isSuccessful ? 'Payment processed successfully' : 'Transaction declined by issuer bank';
+
+    // 3. Create Payment Record (Masking data - Requirement #7)
+    const payment = new Payment({
+      appointmentId,
+      patientId: req.user ? req.user.userId : 'guest',
+      patientName,
+      patientEmail,
+      doctorName,
+      specialty,
+      amount,
+      currency: currency || 'LKR',
+      method: 'card',
+      status: status,
+      cardLast4: cleanCard.slice(-4),
+      cardType: cleanCard.startsWith('4') ? 'Visa' : 'MasterCard',
+      paidAt: isSuccessful ? new Date() : null
+    });
+
+    await payment.save();
+
+    // 4. Update appointment if successful
+    if (isSuccessful) {
+      await updateAppointmentPaymentStatus(appointmentId, payment._id.toString(), 'paid');
+    }
+
+    // 5. Log transaction
+    await createTransactionLog(payment, status, 'pending', 
+      req.user ? { userId: req.user.userId, role: req.user.role, name: req.user.name } : undefined,
+      { mock: true, cardHolder: cardHolderName }
+    );
+
+    // 6. Structured Response (Requirement #6)
+    res.status(isSuccessful ? 200 : 402).json({
+      success: isSuccessful,
+      transactionId: payment.transactionRef,
+      status: isSuccessful ? 'SUCCESS' : 'FAILED',
+      message: message,
+      data: {
+        paymentId: payment._id,
+        amount: payment.amount,
+        currency: payment.currency,
+        cardLast4: payment.cardLast4
+      }
+    });
+
+  } catch (error) {
+    console.error('Checkout error:', error);
+    res.status(500).json({ success: false, status: 'FAILED', message: 'Internal server error during checkout' });
+  }
+};
+
+// @desc    Get payment status by ID (Requirement #8)
+// @route   GET /api/payments/status/:id
+// @access  Patient/Admin
+const getPaymentStatus = async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    res.json({
+      success: true,
+      transactionId: payment.transactionRef,
+      status: payment.status.toUpperCase(),
+      amount: payment.amount,
+      currency: payment.currency,
+      paidAt: payment.paidAt,
+      method: payment.method
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   createPayment,
+  processCheckout,
+  getPaymentStatus,
   payhereNotify,
   simulatePayment,
   getPaymentById,
